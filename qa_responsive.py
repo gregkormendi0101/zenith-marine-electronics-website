@@ -66,6 +66,18 @@ with sync_playwright() as p:
         if width <= 700:
             check(layout["mobileCta"]["left"] >= 0 and layout["mobileCta"]["right"] <= width, f"{width}px: mobile CTA escapes viewport")
             check(layout["mobileCta"]["height"] >= 48, f"{width}px: mobile CTA below 48px")
+            for scroll_fraction in (0, 0.5, 1):
+                page.evaluate(
+                    "fraction => window.scrollTo(0, (document.documentElement.scrollHeight - innerHeight) * fraction)",
+                    scroll_fraction,
+                )
+                page.wait_for_timeout(100)
+                mobile_cta_bottom = page.locator(".mobile-cta").evaluate("node => node.getBoundingClientRect().bottom")
+                viewport_bottom = page.evaluate("innerHeight")
+                check(
+                    abs(mobile_cta_bottom - viewport_bottom) <= 1,
+                    f"{width}px: mobile CTA detached from viewport bottom at {scroll_fraction:.0%} scroll",
+                )
 
         for selector in (".precision-media", ".nmea-card", ".contact-media"):
             page.locator(selector).scroll_into_view_if_needed()
