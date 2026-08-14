@@ -81,6 +81,15 @@ if "<meta name=\"viewport\"" not in html:
 if "application/ld+json" not in html:
     errors.append("structured data missing")
 
+required_service_copy = (
+    "NMEA systems",
+    "FCC radio inspections",
+    "Marine installations",
+)
+for required in required_service_copy:
+    if required.lower() not in html.lower():
+        errors.append(f"core service is not explicit in public copy: {required}")
+
 public_copy = html
 private_values = ("8033", "6332", "0012151111", "0031214232", "92157 Overseas", "3324 Deer Creek", "4251 NW")
 for forbidden in private_values:
