@@ -1,8 +1,11 @@
+import os
 from pathlib import Path
+
 from playwright.sync_api import sync_playwright
 
 ROOT = Path(__file__).parent
-URL = "http://100.122.63.73:4173/"
+URL = os.environ.get("ZENITH_QA_URL", "http://100.122.63.73:4173/").rstrip("/") + "/"
+HOST_RESOLVER_RULES = os.environ.get("ZENITH_QA_HOST_RESOLVER_RULES")
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 VIEWPORTS = [
     (320, 740),
@@ -21,10 +24,13 @@ def check(condition: bool, message: str) -> None:
 
 
 with sync_playwright() as p:
+    browser_args = ["--disable-background-networking", "--disable-component-update", "--disable-sync", "--no-first-run"]
+    if HOST_RESOLVER_RULES:
+        browser_args.append(f"--host-resolver-rules={HOST_RESOLVER_RULES}")
     browser = p.chromium.launch(
         headless=True,
         executable_path=CHROME,
-        args=["--disable-background-networking", "--disable-component-update", "--disable-sync", "--no-first-run"],
+        args=browser_args,
     )
 
     for width, height in VIEWPORTS:
