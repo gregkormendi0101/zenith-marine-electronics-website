@@ -30,7 +30,11 @@ with sync_playwright() as p:
             console_errors: list[str] = []
             failed_requests: list[str] = []
             page.on("console", lambda msg, bucket=console_errors: bucket.append(msg.text) if msg.type == "error" else None)
-            page.on("requestfailed", lambda req, bucket=failed_requests: bucket.append(req.url))
+            def keep_real_failure(req, bucket=failed_requests):
+                reason = req.failure or "unknown failure"
+                if "ABORTED" not in reason.upper():
+                    bucket.append(f"{req.url} [{reason}]")
+            page.on("requestfailed", keep_real_failure)
             response = page.goto(urljoin(BASE, path), wait_until="networkidle")
             label = f"{path or 'index.html'} @ {width}px"
             if not response or not response.ok:
