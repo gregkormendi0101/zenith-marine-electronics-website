@@ -1,136 +1,147 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
 import os
+import sys
 from urllib.parse import urljoin
 
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("ZENITH_QA_URL", "http://127.0.0.1:4173/").rstrip("/") + "/"
-HOST_RESOLVER_RULES = os.environ.get("ZENITH_QA_HOST_RESOLVER_RULES")
-CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-PAGES = (
-    ("home", "index.html"),
-    ("nmea", "nmea-networks.html"),
-    ("electronics", "marine-electronics.html"),
-    ("radio", "marine-radio-fcc.html"),
-)
-VIEWPORTS = (
-    (320, 740),
-    (375, 812),
-    (390, 844),
-    (430, 932),
-    (768, 1024),
-    (1024, 768),
-    (1440, 1000),
-)
+BASE = os.environ.get("SITE_URL", "http://127.0.0.1:4173/")
+PAGES = ["", "nmea-networks.html", "marine-electronics.html", "marine-radio-fcc.html"]
+WIDTHS = [320, 375, 390, 430, 768, 1024, 1440]
+errors: list[str] = []
+checks = 0
 
 
-def check(condition: bool, message: str) -> None:
-    if not condition:
-        raise AssertionError(message)
+def fail(message: str) -> None:
+    errors.append(message)
 
 
 with sync_playwright() as p:
-    browser_args = ["--disable-background-networking", "--disable-component-update", "--disable-sync", "--no-first-run"]
-    if HOST_RESOLVER_RULES:
-        browser_args.append(f"--host-resolver-rules={HOST_RESOLVER_RULES}")
-    browser = p.chromium.launch(headless=True, executable_path=CHROME, args=browser_args)
+    browser = p.chromium.launch()
+    context = browser.new_context()
+    page = context.new_page()
 
-    for width, height in VIEWPORTS:
-        for page_name, path in PAGES:
-            errors: list[str] = []
+    for path in PAGES:
+        for width in WIDTHS:
+            checks += 1
+            page.set_viewport_size({"width": width, "height": 900})
             console_errors: list[str] = []
-            page = browser.new_page(viewport={"width": width, "height": height}, device_scale_factor=1, is_mobile=width <= 430)
-            page.on("pageerror", lambda error: errors.append(str(error)))
-            page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
-            page.goto(urljoin(BASE, path), wait_until="networkidle")
-            page.eval_on_selector_all("img[loading='lazy']", "nodes => nodes.forEach(node => node.loading = 'eager')")
-            page.wait_for_function("Array.from(document.images).every(image => image.complete && image.naturalWidth > 0)", timeout=10000)
-            page.wait_for_timeout(180)
+            failed_requests: list[str] = []
+            page.on("console", lambda msg, bucket=console_errors: bucket.append(msg.text) if msg.type == "error" else None)
+            page.on("requestfailed", lambda req, bucket=failed_requests: bucket.append(req.url))
+            response = page.goto(urljoin(BASE, path), wait_until="networkidle")
+            label = f"{path or 'index.html'} @ {width}px"
+            if not response or not response.ok:
+                fail(f"{label}: navigation failed")
+                continue
 
-            metrics = page.evaluate("""
-            () => {
-              const rect = (selector) => {
-                const node = document.querySelector(selector);
-                if (!node) return null;
-                const r = node.getBoundingClientRect();
-                return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,height:r.height};
-              };
+            page.locator("body").wait_for(state="visible")
+            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
+            page.wait_for_timeout(80)
+            page.evaluate("window.scrollTo(0, 0)")
+            page.wait_for_timeout(80)
+
+            state = page.evaluate("""() => {
+              const root = document.documentElement;
+              const offenders = [...document.querySelectorAll('body *')].filter((el) => {
+                const style = getComputedStyle(el);
+                if (style.position === 'fixed' || style.position === 'absolute') return false;
+                const r = el.getBoundingClientRect();
+                return r.right > innerWidth + 1 || r.left < -1;
+              }).slice(0, 8).map((el) => `${el.tagName}.${el.className}`);
+              const badImages = [...document.images].filter((img) => !img.complete || img.naturalWidth === 0).map((img) => img.getAttribute('src'));
+              const h1 = document.querySelector('h1');
+              const phoneCount = (document.body.innerText.match(/305-306-6391/g) || []).length;
               return {
-                width: innerWidth,
-                scrollWidth: document.documentElement.scrollWidth,
-                header: rect('.header-inner'),
-                h1: rect('h1'),
-                cta: rect('.header-cta'),
-                nav: [...document.querySelectorAll('.primary-nav a')].map((n) => {
-                  const r=n.getBoundingClientRect(); return {left:r.left,right:r.right,height:r.height,href:n.getAttribute('href')};
-                }),
-                images: [...document.images].map((i) => ({src:i.getAttribute('src'),ok:i.complete&&i.naturalWidth>0,w:i.naturalWidth,h:i.naturalHeight})),
-                blueprintCount: document.querySelectorAll('img[src^="assets/diagrams/"]').length,
-                h1Text: document.querySelector('h1')?.textContent.trim() || ''
+                overflow: root.scrollWidth - root.clientWidth,
+                offenders,
+                badImages,
+                h1Visible: !!h1 && h1.getBoundingClientRect().height > 0,
+                navCount: document.querySelectorAll('.primary-nav a').length,
+                phoneCount,
+                year: document.querySelector('[data-year]')?.textContent || '',
+                leadLinks: document.querySelectorAll('.track[data-event]').length
               };
-            }
-            """)
+            }""")
 
-            check(metrics["scrollWidth"] == width, f"{page_name} {width}px: horizontal overflow ({metrics['scrollWidth']}px)")
-            check(metrics["h1"] is not None and metrics["h1"]["left"] >= -1 and metrics["h1"]["right"] <= width + 1, f"{page_name} {width}px: h1 escapes viewport")
-            check(metrics["header"] is not None and metrics["header"]["left"] >= -1 and metrics["header"]["right"] <= width + 1, f"{page_name} {width}px: header escapes viewport")
-            check(metrics["cta"] is not None and metrics["cta"]["right"] <= width + 1, f"{page_name} {width}px: header CTA escapes viewport")
-            check(len(metrics["nav"]) == 3 and all(n["left"] >= -1 and n["right"] <= width + 1 for n in metrics["nav"]), f"{page_name} {width}px: three-page navigation is not viewport-safe")
-            check(all(image["ok"] for image in metrics["images"]), f"{page_name} {width}px: image failed: {metrics['images']}")
-            check(metrics["h1Text"], f"{page_name} {width}px: empty h1")
+            if state["overflow"] > 1:
+                fail(f"{label}: horizontal overflow {state['overflow']}px; {state['offenders']}")
+            if state["badImages"]:
+                fail(f"{label}: failed images {state['badImages']}")
+            if not state["h1Visible"]:
+                fail(f"{label}: h1 not visible")
+            if state["navCount"] != 3:
+                fail(f"{label}: expected 3 primary nav links")
+            if state["phoneCount"] != 1:
+                fail(f"{label}: expected one visible phone number, got {state['phoneCount']}")
+            if not state["year"].isdigit():
+                fail(f"{label}: dynamic year missing")
+            if state["leadLinks"] < 3:
+                fail(f"{label}: lead tracking hooks missing")
+            if console_errors:
+                fail(f"{label}: console errors: {console_errors}")
+            if failed_requests:
+                fail(f"{label}: failed requests: {failed_requests}")
 
-            phones = page.eval_on_selector_all("a[href^='tel:'], a[href^='sms:']", "nodes => nodes.map(n => n.getAttribute('href'))")
-            check(phones and all("3053066391" in href and "*" not in href for href in phones), f"{page_name} {width}px: malformed phone link")
+    for width in (390, 1440):
+        page.set_viewport_size({"width": width, "height": 1000})
+        page.goto(BASE, wait_until="networkidle")
+        for target, href in (
+            ("nmea", "nmea-networks.html"),
+            ("electronics", "marine-electronics.html"),
+            ("radio", "marine-radio-fcc.html"),
+        ):
+            tab = page.locator(f'[data-system-target="{target}"]')
+            tab.click()
+            page.wait_for_timeout(60)
+            selected = tab.get_attribute("aria-selected")
+            panel = page.locator(f'[data-system-panel="{target}"]')
+            if selected != "true" or panel.is_hidden():
+                fail(f"home tabs @ {width}px: {target} did not activate")
+            panel_link = panel.locator(f'a[href="{href}"]')
+            if panel_link.count() != 1:
+                fail(f"home tabs @ {width}px: {target} missing dedicated page link")
+        page.locator('[data-system-target="nmea"]').focus()
+        page.keyboard.press("ArrowRight")
+        if page.locator('[data-system-target="electronics"]').get_attribute("aria-selected") != "true":
+            fail(f"home tabs @ {width}px: keyboard navigation failed")
 
-            if page_name == "home":
-                cards = page.evaluate("""
-                () => [...document.querySelectorAll('.focus-card')].map((card) => {
-                  const r=card.getBoundingClientRect();
-                  const a=card.querySelector('a');
-                  return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,href:a.getAttribute('href'),title:card.querySelector('h3').textContent.trim()};
-                })
-                """)
-                check(len(cards) == 3 and metrics["blueprintCount"] == 3, f"home {width}px: three blueprint specialties missing")
-                check([c["href"] for c in cards] == ["nmea-networks.html", "marine-electronics.html", "marine-radio-fcc.html"], f"home {width}px: specialty destinations wrong")
-                check(all(c["left"] >= -1 and c["right"] <= width + 1 for c in cards), f"home {width}px: specialty card escapes viewport")
-                if width >= 1120:
-                    check(all(c["top"] < height for c in cards), f"home {width}px: all three specialties are not introduced in first viewport")
-                    check(max(c["top"] for c in cards) - min(c["top"] for c in cards) < 2, f"home {width}px: specialty cards are not aligned")
-            else:
-                check(metrics["blueprintCount"] == 1, f"{page_name} {width}px: service blueprint missing")
-                check(page.locator(".scope-grid article").count() == 3, f"{page_name} {width}px: service scope must have three lanes")
-                check(page.locator(".process-sheet li").count() == 4, f"{page_name} {width}px: field sequence must have four steps")
-                check(page.locator(".service-switcher a").count() == 2, f"{page_name} {width}px: other-specialty links missing")
-                page.locator(".hero-blueprint").scroll_into_view_if_needed()
-                page.wait_for_timeout(120)
-                diagram = page.locator(".hero-blueprint img").evaluate("i => ({w:i.naturalWidth,h:i.naturalHeight,attrW:i.getAttribute('width'),attrH:i.getAttribute('height'),rect:i.getBoundingClientRect().toJSON()})")
-                check(diagram["w"] > 0 and diagram["h"] > 0 and diagram["attrW"] == "960" and diagram["attrH"] == "680", f"{page_name} {width}px: blueprint dimensions/load wrong {diagram}")
+    page.goto(urljoin(BASE, "?utm_source=qa&utm_campaign=futuristic"), wait_until="networkidle")
+    internal = page.locator('a[href*="nmea-networks.html"]').first.get_attribute("href") or ""
+    if "utm_source=qa" not in internal or "utm_campaign=futuristic" not in internal:
+        fail("UTM retention failed")
 
-            check(not errors, f"{page_name} {width}px: JavaScript errors: {errors}")
-            check(not console_errors, f"{page_name} {width}px: console errors: {console_errors}")
-            print(f"PASS {page_name} {width}x{height}: layout, navigation, assets and content")
-            page.close()
+    page.evaluate("""() => {
+      const el = document.querySelector('.track[data-event]');
+      el.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
+    }""")
+    data_layer = page.evaluate("window.dataLayer")
+    if not data_layer or data_layer[-1].get("event") != "lead_action":
+        fail("lead-action tracking push failed")
 
-    page = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True)
-    page.goto(urljoin(BASE, "index.html?utm_source=qa&utm_medium=browser"), wait_until="networkidle")
-    stored = page.evaluate("sessionStorage.getItem('zenith_attribution')")
-    check(stored is not None and 'qa' in stored and 'browser' in stored, "UTM attribution was not retained")
-    internal_href = page.locator(".focus-card a").first.get_attribute("href") or ""
-    check("utm_source=qa" in internal_href and "utm_medium=browser" in internal_href, f"UTM attribution not carried to service page: {internal_href}")
-    page.locator(".contact-primary").scroll_into_view_if_needed()
-    page.evaluate("document.querySelector('.contact-primary').addEventListener('click', event => event.preventDefault(), {once:true})")
-    page.locator(".contact-primary").click()
-    tracked = page.evaluate("window.dataLayer.at(-1)")
-    check(tracked and tracked.get("action") == "contact_text" and tracked.get("page") == "home", f"lead tracking wrong: {tracked}")
-    print("PASS analytics: UTM retention across pages and page-specific lead tracking")
-    page.close()
-
-    page = browser.new_page(viewport={"width": 390, "height": 844}, is_mobile=True, reduced_motion="reduce")
-    page.goto(urljoin(BASE, "index.html"), wait_until="networkidle")
-    animation = page.locator(".scan-line").evaluate("n => getComputedStyle(n).display")
-    check(animation == "none", "reduced-motion preference does not disable decorative scan")
-    print("PASS accessibility: reduced-motion mode disables decorative scans")
-    page.close()
-
+    reduced = browser.new_context(reduced_motion="reduce", viewport={"width": 390, "height": 844})
+    reduced_page = reduced.new_page()
+    reduced_page.goto(BASE, wait_until="networkidle")
+    reduced_state = reduced_page.evaluate("""() => ({
+      hiddenReveal: [...document.querySelectorAll('[data-reveal]')].some((el) => getComputedStyle(el).opacity === '0'),
+      smoothScroll: getComputedStyle(document.documentElement).scrollBehavior,
+      orbitDuration: getComputedStyle(document.querySelector('.orbit-rings i')).animationDuration
+    })""")
+    if reduced_state["hiddenReveal"]:
+        fail("reduced motion: reveal content remained hidden")
+    if reduced_state["smoothScroll"] == "smooth":
+        fail("reduced motion: smooth scrolling remained active")
+    reduced.close()
     browser.close()
 
-print("RESPONSIVE QA PASSED")
+if errors:
+    print(f"RESPONSIVE QA FAILED ({len(errors)} issue(s), {checks} page/width checks)")
+    for error in errors:
+        print(f"- {error}")
+    sys.exit(1)
+
+print(f"RESPONSIVE QA PASSED ({checks} page/width checks)")
+print("- widths: 320, 375, 390, 430, 768, 1024, 1440")
+print("- images, overflow, navigation, tabs, keyboard, UTM, tracking and reduced motion: pass")

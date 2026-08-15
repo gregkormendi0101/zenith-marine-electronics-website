@@ -1,225 +1,155 @@
+#!/usr/bin/env python3
 from __future__ import annotations
 
 import json
 import re
 import sys
-import xml.etree.ElementTree as ET
-from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlparse
+from urllib.parse import urlsplit
 
-ROOT = Path(__file__).parent
+from bs4 import BeautifulSoup
+
+ROOT = Path(__file__).resolve().parent
 PAGES = {
     "index.html": "https://zenithmarineelectronics.com/",
     "nmea-networks.html": "https://zenithmarineelectronics.com/nmea-networks.html",
     "marine-electronics.html": "https://zenithmarineelectronics.com/marine-electronics.html",
     "marine-radio-fcc.html": "https://zenithmarineelectronics.com/marine-radio-fcc.html",
 }
-DIAGRAMS = {
-    "assets/diagrams/nmea-backbone.svg": ("120 Ω", "FUSED 12 VDC", "NMEA 2000 BACKBONE", "END TERMINATOR"),
-    "assets/diagrams/helm-panel.svg": ("MULTIFUNCTION DISPLAY", "PROTECTED 12 VDC", "NMEA DATA", "VHF ANTENNA", "TRANSDUCER SIGNAL"),
-    "assets/diagrams/vhf-radio.svg": ("VHF / DSC", "50 Ω COAX", "FUSED 12 VDC", "GPS POSITION", "SHIP-RADIO CHECKPOINTS"),
-}
-CSS = ROOT / "styles.css"
-JS = ROOT / "script.js"
-
-
-class SiteParser(HTMLParser):
-    def __init__(self) -> None:
-        super().__init__()
-        self.refs: list[tuple[str, str]] = []
-        self.images: list[dict[str, str]] = []
-        self.ids: set[str] = set()
-        self.links: list[str] = []
-        self.canonicals: list[str] = []
-        self.json_ld: list[str] = []
-        self._json_buffer: list[str] | None = None
-
-    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
-        data = {key: value or "" for key, value in attrs}
-        if "id" in data:
-            if data["id"] in self.ids:
-                raise AssertionError(f"duplicate id: {data['id']}")
-            self.ids.add(data["id"])
-        if tag == "img":
-            self.images.append(data)
-        if tag == "link" and data.get("href"):
-            self.refs.append((tag, data["href"]))
-            if data.get("rel") == "canonical":
-                self.canonicals.append(data["href"])
-        if tag in {"img", "script"} and data.get("src"):
-            self.refs.append((tag, data["src"]))
-        if tag == "a" and data.get("href"):
-            self.links.append(data["href"])
-        if tag == "script" and data.get("type") == "application/ld+json":
-            self._json_buffer = []
-
-    def handle_data(self, data: str) -> None:
-        if self._json_buffer is not None:
-            self._json_buffer.append(data)
-
-    def handle_endtag(self, tag: str) -> None:
-        if tag == "script" and self._json_buffer is not None:
-            self.json_ld.append("".join(self._json_buffer))
-            self._json_buffer = None
-
-
-def local_path(ref: str) -> Path | None:
-    parsed = urlparse(ref)
-    if parsed.scheme or ref.startswith(("#", "data:", "mailto:", "tel:", "sms:")):
-        return None
-    return ROOT / parsed.path
-
-
+SERVICE_PAGES = [name for name in PAGES if name != "index.html"]
+MAX_ASSET_BYTES = 400 * 1024
 errors: list[str] = []
-all_html = ""
-all_links: list[str] = []
-image_count = 0
-ref_count = 0
 
+
+def check(condition: bool, message: str) -> None:
+    if not condition:
+        errors.append(message)
+
+
+def local_target(raw: str) -> Path | None:
+    if not raw or raw.startswith(("#", "tel:", "sms:", "mailto:", "data:", "javascript:")):
+        return None
+    split = urlsplit(raw)
+    if split.scheme or split.netloc:
+        return None
+    path = split.path
+    if not path:
+        return None
+    return ROOT / path
+
+
+soups: dict[str, BeautifulSoup] = {}
+all_html = ""
 for filename, canonical in PAGES.items():
     path = ROOT / filename
+    check(path.exists(), f"missing page: {filename}")
     if not path.exists():
-        errors.append(f"missing page: {filename}")
         continue
-    html = path.read_text(encoding="utf-8")
-    all_html += "\n" + html
-    parser = SiteParser()
-    try:
-        parser.feed(html)
-    except AssertionError as exc:
-        errors.append(f"{filename}: {exc}")
-        continue
-
-    if parser.canonicals != [canonical]:
-        errors.append(f"{filename}: canonical mismatch {parser.canonicals}")
-    if '<meta name="viewport"' not in html:
-        errors.append(f"{filename}: viewport meta missing")
-    if not parser.json_ld:
-        errors.append(f"{filename}: structured data missing")
-    for block in parser.json_ld:
-        try:
-            json.loads(block)
-        except json.JSONDecodeError as exc:
-            errors.append(f"{filename}: invalid structured data: {exc}")
-
-    for tag, ref in parser.refs:
-        local = local_path(ref)
-        if local and not local.exists():
-            errors.append(f"{filename}: missing {tag} asset {ref}")
-    for image in parser.images:
-        if "alt" not in image:
-            errors.append(f"{filename}: image missing alt {image.get('src')}")
-    for href in parser.links:
-        parsed = urlparse(href)
-        if href.startswith("#") and href[1:] not in parser.ids:
-            errors.append(f"{filename}: anchor target missing {href}")
-        elif not parsed.scheme and not href.startswith(("#", "tel:", "sms:")):
-            target = parsed.path or filename
-            if target.endswith(".html") and not (ROOT / target).exists():
-                errors.append(f"{filename}: local page link missing {href}")
-    all_links.extend(parser.links)
-    image_count += len(parser.images)
-    ref_count += len(parser.refs)
-
-css = CSS.read_text(encoding="utf-8")
-js = JS.read_text(encoding="utf-8")
-if css.count("{") != css.count("}"):
-    errors.append("CSS braces are unbalanced")
-if js.count("{") != js.count("}"):
-    errors.append("JS braces are unbalanced")
-for match in re.findall(r'url\(["\']?([^"\')]+)', css):
-    if match.startswith(("data:", "%23", "#")):
-        continue
-    local = local_path(match)
-    if local and not local.exists():
-        errors.append(f"missing CSS asset: {match}")
-
-for diagram, required_labels in DIAGRAMS.items():
-    path = ROOT / diagram
-    if not path.exists():
-        errors.append(f"missing blueprint diagram: {diagram}")
-        continue
-    try:
-        ET.parse(path)
-    except ET.ParseError as exc:
-        errors.append(f"invalid SVG {diagram}: {exc}")
     source = path.read_text(encoding="utf-8")
-    for label in required_labels:
-        if label not in source:
-            errors.append(f"{diagram}: required technical label missing: {label}")
+    all_html += source + "\n"
+    soup = BeautifulSoup(source, "html.parser")
+    soups[filename] = soup
 
-home = (ROOT / "index.html").read_text(encoding="utf-8")
-for page in PAGES:
-    if page != "index.html" and f'href="{page}"' not in home:
-        errors.append(f"home page does not link to {page}")
-for diagram in DIAGRAMS:
-    if home.count(diagram) != 1:
-        errors.append(f"home must show blueprint once: {diagram}")
-if all_html.count("assets/credentials/nmea.jpg") != 1:
-    errors.append("site must use exactly one official NMEA logo")
+    check(len(soup.find_all("h1")) == 1, f"{filename}: expected exactly one h1")
+    canonical_tag = soup.find("link", rel="canonical")
+    check(bool(canonical_tag and canonical_tag.get("href") == canonical), f"{filename}: incorrect canonical")
+    check(bool(soup.find("meta", attrs={"name": "description", "content": True})), f"{filename}: missing meta description")
+    check(bool(soup.find("meta", attrs={"property": "og:image", "content": True})), f"{filename}: missing social image")
+    check(len(soup.select(".primary-nav a")) == 3, f"{filename}: primary navigation must expose all three specialties")
+    check(soup.get_text(" ", strip=True).count("305-306-6391") == 1, f"{filename}: visible phone number must appear exactly once")
 
-required_home_copy = (
-    "NMEA Networks",
-    "Marine Electronics",
-    "Marine Radio + FCC",
-    "FCC ship-radio inspections",
-)
-for phrase in required_home_copy:
-    if phrase.lower() not in home.lower():
-        errors.append(f"home page does not state core specialty: {phrase}")
+    scripts = soup.find_all("script", attrs={"type": "application/ld+json"})
+    check(len(scripts) == 1, f"{filename}: expected one JSON-LD block")
+    for block in scripts:
+        try:
+            json.loads(block.string or block.get_text())
+        except Exception as exc:
+            errors.append(f"{filename}: invalid JSON-LD: {exc}")
 
-for forbidden in (
-    "Black Swan",
-    "Limited launch",
-    "Inquiries now",
-    "Basic NMEA 2000 Installer",
-    "Certificate numbers intentionally not published",
-    "FCC inspector",
-    "dock-1440.webp",
-    "helm-1440.webp",
-    "hero-2400.webp",
-    "navigation-display",
-    "radio-console",
-):
-    if forbidden.lower() in all_html.lower():
-        errors.append(f"stale or misleading public content remains: {forbidden}")
+    for tag in soup.find_all(["a", "img", "link", "script", "source"]):
+        for attr in ("href", "src", "srcset"):
+            raw = tag.get(attr)
+            if not raw:
+                continue
+            candidates = [part.strip().split(" ")[0] for part in raw.split(",")] if attr == "srcset" else [raw]
+            for candidate in candidates:
+                target = local_target(candidate)
+                check(target is None or target.exists(), f"{filename}: broken local reference {candidate}")
 
-for private in ("8033", "6332", "0012151111", "0031214232", "92157 Overseas", "3324 Deer Creek", "4251 NW"):
-    if private in all_html:
-        errors.append(f"private credential/address data exposed: {private}")
+    for image in soup.find_all("img"):
+        check(image.has_attr("alt"), f"{filename}: image missing alt text: {image.get('src')}")
+        check(image.has_attr("width") and image.has_attr("height"), f"{filename}: image missing intrinsic dimensions: {image.get('src')}")
 
-phone_links = re.findall(r'href="(?:tel|sms):([^"?]+)', all_html)
-if not phone_links or any("3053066391" not in value or "*" in value for value in phone_links):
-    errors.append("phone or SMS link is missing/malformed")
+    lowered = source.lower()
+    check("assets/diagrams" not in lowered, f"{filename}: retired diagram asset referenced")
+    check("blueprint" not in lowered, f"{filename}: retired blueprint language remains")
+    check("fcc inspector" not in lowered, f"{filename}: bare FCC inspector wording is not allowed")
 
-sitemap_text = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
-for canonical in PAGES.values():
-    if f"<loc>{canonical}</loc>" not in sitemap_text:
-        errors.append(f"sitemap missing {canonical}")
+home = soups.get("index.html")
+if home:
+    tabs = home.select("[data-system-target]")
+    panels = home.select("[data-system-panel]")
+    check(len(tabs) == 3, "home: expected exactly three system tabs")
+    check(len(panels) == 3, "home: expected exactly three system panels")
+    check({t.get("data-system-target") for t in tabs} == {"nmea", "electronics", "radio"}, "home: incorrect system tab names")
+    check({p.get("data-system-panel") for p in panels} == {"nmea", "electronics", "radio"}, "home: incorrect system panel names")
+    for target in ("nmea-networks.html", "marine-electronics.html", "marine-radio-fcc.html"):
+        check(bool(home.find("a", href=target)), f"home: missing dedicated-page link to {target}")
+    visible = home.get_text(" ", strip=True).lower()
+    for phrase in ("nmea networks", "marine electronics", "marine radio + fcc", "fcc ship-radio inspections"):
+        check(phrase in visible, f"home: missing offer phrase '{phrase}'")
 
-asset_summary: list[str] = []
-for path in sorted((ROOT / "assets").rglob("*")):
-    if not path.is_file():
+for filename in SERVICE_PAGES:
+    soup = soups.get(filename)
+    if not soup:
         continue
-    size_kb = round(path.stat().st_size / 1024)
-    if size_kb > 400:
-        errors.append(f"production asset is too large: {path.relative_to(ROOT)} ({size_kb} KB)")
-    asset_summary.append(f"{path.relative_to(ROOT)}: {size_kb} KB")
+    check(len(soup.select(".scope-grid > article")) == 3, f"{filename}: expected three scope lanes")
+    check(len(soup.select(".process-section ol > li")) == 4, f"{filename}: expected four process steps")
+    check(len(soup.select(".service-switcher > a")) == 2, f"{filename}: expected two specialty switcher links")
+    check(len(soup.select(".detail-visual")) == 1, f"{filename}: expected one primary system visual")
+
+check(all_html.count("assets/credentials/nmea.jpg") == 1, "site: official NMEA logo must appear exactly once")
+for forbidden in ("black swan marine", "92157 overseas", "3324 deer creek", "4251 nw 5th", "pg00081279", "#8033", "#6332"):
+    check(forbidden not in all_html.lower(), f"site: private, stale or superseded text found: {forbidden}")
+
+css = (ROOT / "styles.css").read_text(encoding="utf-8")
+check("blueprint" not in css.lower(), "styles.css: retired blueprint styling remains")
+check("grid-template" in css, "styles.css: expected responsive layout rules")
+check("prefers-reduced-motion" in css, "styles.css: missing reduced-motion support")
+
+script = (ROOT / "script.js").read_text(encoding="utf-8")
+for required in ("data-system-target", "IntersectionObserver", "utm_source", "lead_action", "--parallax-y"):
+    check(required in script, f"script.js: missing behavior marker {required}")
+
+visual_doc = ROOT / "GENERATED_VISUALS.md"
+check(visual_doc.exists(), "missing GENERATED_VISUALS.md")
+if visual_doc.exists():
+    visual_text = visual_doc.read_text(encoding="utf-8").lower()
+    check("fal.ai" in visual_text and "recraft" in visual_text, "generated visual record must name FAL/Recraft")
+    check("rejected" in visual_text, "generated visual record must document rejected candidates")
+
+sitemap = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
+for canonical in PAGES.values():
+    check(canonical in sitemap, f"sitemap missing {canonical}")
+
+referenced_renders = set(re.findall(r"assets/renders/[a-z0-9-]+\.webp", all_html))
+actual_renders = {str(path.relative_to(ROOT)) for path in (ROOT / "assets" / "renders").glob("*.webp")}
+check(referenced_renders == actual_renders, f"render references differ from production files: refs={sorted(referenced_renders)} files={sorted(actual_renders)}")
+
+for path in (ROOT / "assets").rglob("*"):
+    if not path.is_file() or path.name == ".DS_Store":
+        continue
+    size = path.stat().st_size
+    check(size <= MAX_ASSET_BYTES, f"asset exceeds 400KB: {path.relative_to(ROOT)} ({size} bytes)")
 
 if errors:
-    print("VALIDATION FAILED")
+    print(f"VALIDATION FAILED ({len(errors)} issue(s))")
     for error in errors:
         print(f"- {error}")
     sys.exit(1)
 
 print("VALIDATION PASSED")
-print(f"- {len(PAGES)} pages have canonical URLs, viewport metadata and valid JSON-LD")
-print(f"- {image_count} images have alt attributes; {ref_count} local references resolve")
-print("- home page leads with all three specialties and links to each dedicated page")
-print("- three blueprint SVGs parse and include required technical labels")
-print("- one NMEA logo; no stock-photo references, stale branding, private IDs or addresses")
-print("- sitemap contains all four public URLs; phone/SMS links are valid")
-print("ASSETS")
-for item in asset_summary:
-    print(f"- {item}")
+print(f"- pages: {len(PAGES)}")
+print(f"- home systems: {len(home.select('[data-system-panel]')) if home else 0}")
+print(f"- production renders: {len(actual_renders)}")
+print("- public wording, metadata, references, privacy and asset budget: pass")
