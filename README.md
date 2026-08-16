@@ -9,16 +9,6 @@ Static four-page website for Zenith Marine Electronics in the Upper Florida Keys
 - `marine-electronics.html` — marine electronics planning, installation and commissioning
 - `marine-radio-fcc.html` — VHF/DSC/AIS service and FCC ship-radio inspections
 
-The current visual direction is light titanium/pearl with graphite typography, luminous cyan/teal accents, dimensional system renders and restrained reversible motion. It deliberately replaces the retired navy blueprint/grid treatment.
-
-## Production visuals
-
-- `assets/renders/nmea-system-{1200,2400}.webp`
-- `assets/renders/helm-system-{1200,2400}.webp`
-- `assets/renders/radio-unit-{1200,2400}.webp`
-
-The renders were generated through FAL/Recraft, visually inspected and paired with semantic HTML labels. The NMEA topology and radio signal path are stated by the HTML—not inferred from decorative cabling. Source URLs and selection notes are in `GENERATED_VISUALS.md`.
-
 ## Preview
 
 ```bash
@@ -37,7 +27,6 @@ python3 qa_capture.py
 
 - `validate_site.py` checks the four pages, metadata, local references, service architecture, public wording, privacy constraints and production asset sizes.
 - `qa_responsive.py` exercises all pages at 320, 375, 390, 430, 768, 1024 and 1440 px, including overflow, image loading, tab behavior, UTM retention, lead tracking and reduced motion.
-- `qa_capture.py` writes desktop/mobile visual evidence to `qa/futuristic/`.
 
 ## Deployment
 

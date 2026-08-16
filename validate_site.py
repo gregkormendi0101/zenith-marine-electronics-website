@@ -121,13 +121,6 @@ script = (ROOT / "script.js").read_text(encoding="utf-8")
 for required in ("data-system-target", "IntersectionObserver", "utm_source", "lead_action", "--parallax-y"):
     check(required in script, f"script.js: missing behavior marker {required}")
 
-visual_doc = ROOT / "GENERATED_VISUALS.md"
-check(visual_doc.exists(), "missing GENERATED_VISUALS.md")
-if visual_doc.exists():
-    visual_text = visual_doc.read_text(encoding="utf-8").lower()
-    check("fal.ai" in visual_text and "recraft" in visual_text, "generated visual record must name FAL/Recraft")
-    check("rejected" in visual_text, "generated visual record must document rejected candidates")
-
 sitemap = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 for canonical in PAGES.values():
     check(canonical in sitemap, f"sitemap missing {canonical}")
