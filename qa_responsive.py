@@ -1,151 +1,440 @@
 #!/usr/bin/env python3
 from __future__ import annotations
 
+import contextlib
+import http.server
+import json
 import os
-import sys
-from urllib.parse import urljoin
+import re
+import socket
+import threading
+from html.parser import HTMLParser
+from pathlib import Path
+from urllib.parse import urlsplit
 
+from axe_playwright_python.sync_playwright import Axe
 from playwright.sync_api import sync_playwright
 
-BASE = os.environ.get("SITE_URL", "http://127.0.0.1:4173/")
-PAGES = ["", "nmea-networks.html", "marine-electronics.html", "marine-radio-fcc.html"]
-WIDTHS = [320, 375, 390, 430, 768, 1024, 1440]
-errors: list[str] = []
-checks = 0
+ROOT = Path(__file__).resolve().parent
+PREVIEWS = ROOT / ".qa-artifacts"
+VIEWPORTS = {
+    "mobile-320": (320, 900),
+    "mobile-390": (390, 844),
+    "tablet-768": (768, 1024),
+    "desktop-1440": (1440, 1100),
+}
+PHONE = "+13053066391"
 
 
-def fail(message: str) -> None:
-    errors.append(message)
+class Refs(HTMLParser):
+    def __init__(self) -> None:
+        super().__init__()
+        self.refs: list[str] = []
+        self.ids: set[str] = set()
+        self.h1_count = 0
+        self.images_without_alt = 0
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        data = dict(attrs)
+        if data.get("id"):
+            self.ids.add(data["id"] or "")
+        if tag == "h1":
+            self.h1_count += 1
+        if tag == "img" and "alt" not in data:
+            self.images_without_alt += 1
+        for key in ("src", "href", "srcset"):
+            if data.get(key):
+                self.refs.append(data[key] or "")
 
 
-with sync_playwright() as p:
-    browser = p.chromium.launch()
-    context = browser.new_context()
-    page = context.new_page()
+def free_port() -> int:
+    with contextlib.closing(socket.socket()) as sock:
+        sock.bind(("127.0.0.1", 0))
+        return int(sock.getsockname()[1])
 
-    for path in PAGES:
-        for width in WIDTHS:
-            checks += 1
-            page.set_viewport_size({"width": width, "height": 900})
-            console_errors: list[str] = []
-            failed_requests: list[str] = []
-            page.on("console", lambda msg, bucket=console_errors: bucket.append(msg.text) if msg.type == "error" else None)
-            def keep_real_failure(req, bucket=failed_requests):
-                reason = req.failure or "unknown failure"
-                if "ABORTED" not in reason.upper():
-                    bucket.append(f"{req.url} [{reason}]")
-            page.on("requestfailed", keep_real_failure)
-            response = page.goto(urljoin(BASE, path), wait_until="networkidle")
-            label = f"{path or 'index.html'} @ {width}px"
-            if not response or not response.ok:
-                fail(f"{label}: navigation failed")
-                continue
 
-            page.locator("body").wait_for(state="visible")
-            page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            page.wait_for_timeout(80)
-            page.evaluate("window.scrollTo(0, 0)")
-            page.wait_for_timeout(80)
+def validate_source() -> list[str]:
+    errors: list[str] = []
+    html = (ROOT / "index.html").read_text(encoding="utf-8")
+    parser = Refs()
+    parser.feed(html)
 
-            state = page.evaluate("""() => {
-              const root = document.documentElement;
-              const offenders = [...document.querySelectorAll('body *')].filter((el) => {
-                const style = getComputedStyle(el);
-                if (style.position === 'fixed' || style.position === 'absolute') return false;
-                const r = el.getBoundingClientRect();
-                return r.right > innerWidth + 1 || r.left < -1;
-              }).slice(0, 8).map((el) => `${el.tagName}.${el.className}`);
-              const badImages = [...document.images].filter((img) => !img.complete || img.naturalWidth === 0).map((img) => img.getAttribute('src'));
-              const h1 = document.querySelector('h1');
-              const phoneCount = (document.body.innerText.match(/305-306-6391/g) || []).length;
-              return {
-                overflow: root.scrollWidth - root.clientWidth,
-                offenders,
-                badImages,
-                h1Visible: !!h1 && h1.getBoundingClientRect().height > 0,
-                navCount: document.querySelectorAll('.primary-nav a').length,
-                phoneCount,
-                year: document.querySelector('[data-year]')?.textContent || '',
-                leadLinks: document.querySelectorAll('.track[data-event]').length
-              };
-            }""")
+    if parser.h1_count != 1:
+        errors.append(f"Source expected one H1, found {parser.h1_count}")
+    if parser.images_without_alt:
+        errors.append(f"Images missing alt attributes: {parser.images_without_alt}")
 
-            if state["overflow"] > 1:
-                fail(f"{label}: horizontal overflow {state['overflow']}px; {state['offenders']}")
-            if state["badImages"]:
-                fail(f"{label}: failed images {state['badImages']}")
-            if not state["h1Visible"]:
-                fail(f"{label}: h1 not visible")
-            if state["navCount"] != 3:
-                fail(f"{label}: expected 3 primary nav links")
-            if state["phoneCount"] != 1:
-                fail(f"{label}: expected one visible phone number, got {state['phoneCount']}")
-            if not state["year"].isdigit():
-                fail(f"{label}: dynamic year missing")
-            if state["leadLinks"] < 3:
-                fail(f"{label}: lead tracking hooks missing")
-            if console_errors:
-                fail(f"{label}: console errors: {console_errors}")
-            if failed_requests:
-                fail(f"{label}: failed requests: {failed_requests}")
+    for ref in parser.refs:
+        if ref.startswith(("http://", "https://", "tel:", "sms:", "#")):
+            if ref.startswith("#") and ref[1:] not in parser.ids:
+                errors.append(f"Missing anchor target: {ref}")
+            continue
+        clean = urlsplit(ref.split()[0]).path
+        if clean and not (ROOT / clean).is_file():
+            errors.append(f"Missing local reference: {ref}")
 
-    for width in (390, 1440):
-        page.set_viewport_size({"width": width, "height": 1000})
-        page.goto(BASE, wait_until="networkidle")
-        for target, href in (
-            ("nmea", "nmea-networks.html"),
-            ("electronics", "marine-electronics.html"),
-            ("radio", "marine-radio-fcc.html"),
-        ):
-            tab = page.locator(f'[data-system-target="{target}"]')
-            tab.click()
-            page.wait_for_timeout(60)
-            selected = tab.get_attribute("aria-selected")
-            panel = page.locator(f'[data-system-panel="{target}"]')
-            if selected != "true" or panel.is_hidden():
-                fail(f"home tabs @ {width}px: {target} did not activate")
-            panel_link = panel.locator(f'a[href="{href}"]')
-            if panel_link.count() != 1:
-                fail(f"home tabs @ {width}px: {target} missing dedicated page link")
-        page.locator('[data-system-target="nmea"]').focus()
-        page.keyboard.press("ArrowRight")
-        if page.locator('[data-system-target="electronics"]').get_attribute("aria-selected") != "true":
-            fail(f"home tabs @ {width}px: keyboard navigation failed")
+    css = (ROOT / "styles.css").read_text(encoding="utf-8")
+    for ref in re.findall(r'url\(["\']?([^"\')]+)', css):
+        if ref.startswith(("data:", "http://", "https://")):
+            continue
+        if not (ROOT / ref).is_file():
+            errors.append(f"Missing CSS asset: {ref}")
 
-    page.goto(urljoin(BASE, "?utm_source=qa&utm_campaign=futuristic"), wait_until="networkidle")
-    internal = page.locator('a[href*="nmea-networks.html"]').first.get_attribute("href") or ""
-    if "utm_source=qa" not in internal or "utm_campaign=futuristic" not in internal:
-        fail("UTM retention failed")
+    js = (ROOT / "app.js").read_text(encoding="utf-8")
+    if "window.ZenithBooking" not in js:
+        errors.append("Booking helper is not exposed for deterministic QA")
+    if "window.ZenithMorph" not in js:
+        errors.append("Morph helper is not exposed for deterministic QA")
 
-    page.evaluate("""() => {
-      const el = document.querySelector('.track[data-event]');
-      el.dispatchEvent(new MouseEvent('click', {bubbles: true, cancelable: true}));
-    }""")
-    data_layer = page.evaluate("window.dataLayer")
-    if not data_layer or data_layer[-1].get("event") != "lead_action":
-        fail("lead-action tracking push failed")
+    for blueprint_name in ("hero-blueprint.svg", "hero-blueprint-mobile.svg"):
+        blueprint = (ROOT / "assets" / blueprint_name).read_text(encoding="utf-8")
+        if "<image" in blueprint:
+            errors.append(f"{blueprint_name} embeds a raster image instead of pure vector linework")
+        if "<text" in blueprint:
+            errors.append(f"{blueprint_name} contains visible text")
+        if blueprint.count("<path") < 20:
+            errors.append(f"{blueprint_name} does not contain enough drafted linework")
+    return errors
 
-    reduced = browser.new_context(reduced_motion="reduce", viewport={"width": 390, "height": 844})
-    reduced_page = reduced.new_page()
-    reduced_page.goto(BASE, wait_until="networkidle")
-    reduced_state = reduced_page.evaluate("""() => ({
-      hiddenReveal: [...document.querySelectorAll('[data-reveal]')].some((el) => getComputedStyle(el).opacity === '0'),
-      smoothScroll: getComputedStyle(document.documentElement).scrollBehavior,
-      orbitDuration: getComputedStyle(document.querySelector('.orbit-rings i')).animationDuration
-    })""")
-    if reduced_state["hiddenReveal"]:
-        fail("reduced motion: reveal content remained hidden")
-    if reduced_state["smoothScroll"] == "smooth":
-        fail("reduced motion: smooth scrolling remained active")
-    reduced.close()
-    browser.close()
 
-if errors:
-    print(f"RESPONSIVE QA FAILED ({len(errors)} issue(s), {checks} page/width checks)")
-    for error in errors:
-        print(f"- {error}")
-    sys.exit(1)
+def run() -> int:
+    PREVIEWS.mkdir(exist_ok=True)
+    source_errors = validate_source()
+    errors = list(source_errors)
+    results: dict[str, object] = {
+        "source": "pass" if not source_errors else source_errors,
+        "viewports": {},
+        "reduced_motion": {},
+    }
 
-print(f"RESPONSIVE QA PASSED ({checks} page/width checks)")
-print("- widths: 320, 375, 390, 430, 768, 1024, 1440")
-print("- images, overflow, navigation, tabs, keyboard, UTM, tracking and reduced motion: pass")
+    target_url = os.environ.get("ZENITH_QA_URL", "").rstrip("/")
+    server: http.server.ThreadingHTTPServer | None = None
+    if target_url:
+        base_url = target_url
+    else:
+        port = free_port()
+        handler = lambda *args, **kwargs: http.server.SimpleHTTPRequestHandler(*args, directory=str(ROOT), **kwargs)
+        server = http.server.ThreadingHTTPServer(("127.0.0.1", port), handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        base_url = f"http://127.0.0.1:{port}"
+
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch()
+            axe = Axe()
+
+            for name, (width, height) in VIEWPORTS.items():
+                context = browser.new_context(
+                    viewport={"width": width, "height": height},
+                    device_scale_factor=1,
+                    reduced_motion="no-preference",
+                )
+                page = context.new_page()
+                browser_errors: list[str] = []
+                page.on(
+                    "console",
+                    lambda msg, bucket=browser_errors: bucket.append(f"console:{msg.type}:{msg.text}")
+                    if msg.type == "error"
+                    else None,
+                )
+                page.on("pageerror", lambda exc, bucket=browser_errors: bucket.append(f"pageerror:{exc}"))
+                response = page.goto(f"{base_url}/", wait_until="networkidle")
+                page.evaluate("document.fonts.ready")
+                page.add_style_tag(content="html{scroll-behavior:auto!important}")
+                page.wait_for_timeout(80)
+
+                status = response.status if response else 0
+                h1_count = page.locator("h1").count()
+                card_count = page.locator(".service-card").count()
+                symbol_count = page.locator(".service-symbol").count()
+                morph_image_count = page.locator(".morph-layer img").count()
+                hero_state_label_count = page.locator(".morph-status, .morph-instruction").count()
+                overflow = page.evaluate(
+                    "Math.max(document.documentElement.scrollWidth, document.body.scrollWidth) - innerWidth"
+                )
+                images = page.locator("img").evaluate_all(
+                    "imgs => imgs.map(i => ({src:i.currentSrc || i.getAttribute('src'), complete:i.complete, width:i.naturalWidth, alt:i.getAttribute('alt')}))"
+                )
+                broken = [item for item in images if not item["complete"] or item["width"] <= 0]
+                unnamed = page.locator("a, button, input, select, textarea").evaluate_all(
+                    "els => els.filter(el => { const tag=el.tagName.toLowerCase(); if(['input','select','textarea'].includes(tag)) return !el.labels?.length && !el.getAttribute('aria-label'); return !(el.innerText || el.getAttribute('aria-label') || '').trim(); }).map(el => el.outerHTML)"
+                )
+                tel_count = page.locator(f'a[href="tel:{PHONE}"]').count()
+                sms_count = page.locator(f'a[href="sms:{PHONE}"]').count()
+                offer_text = page.locator("h1").inner_text()
+                canonical_href = page.locator('link[rel="canonical"]').get_attribute("href")
+                social_image = page.locator('meta[property="og:image"]').get_attribute("content")
+                booking_href = page.evaluate(
+                    "window.ZenithBooking.buildHref({service:'NMEA 2000 networks',location:'Tavernier',vessel:'Test vessel / test equipment',date:'',details:'Intermittent data'})"
+                )
+
+                morph_states = page.evaluate(
+                    """() => {
+                      const stage = document.querySelector('[data-morph-stage]');
+                      const snap = () => ({
+                        reveal: stage.style.getPropertyValue('--reveal'),
+                        turn: stage.style.getPropertyValue('--turn'),
+                        state: stage.dataset.morphState,
+                        progress: window.ZenithMorph.progress()
+                      });
+                      window.ZenithMorph.render(0); const blueprint = snap();
+                      window.ZenithMorph.render(0.5); const middle = snap();
+                      window.ZenithMorph.render(1); const vessel = snap();
+                      window.ZenithMorph.render(0); const reversed = snap();
+                      return {blueprint, middle, vessel, reversed};
+                    }"""
+                )
+
+                if width > 820:
+                    travel = page.evaluate(
+                        "document.querySelector('[data-morph-hero]').offsetHeight - document.querySelector('[data-morph-sticky]').offsetHeight"
+                    )
+                    scroll_positions = (0, travel * 0.5, travel, 0)
+                else:
+                    stage_top = page.evaluate(
+                        "document.querySelector('[data-morph-stage]').getBoundingClientRect().top + scrollY"
+                    )
+                    scroll_positions = (
+                        max(0, stage_top - height * 0.78),
+                        max(0, stage_top - height * 0.48),
+                        max(0, stage_top - height * 0.18),
+                        0,
+                    )
+
+                scroll_progress: list[float] = []
+                for position in scroll_positions:
+                    page.evaluate("y => window.scrollTo(0, y)", position)
+                    page.wait_for_timeout(80)
+                    page.evaluate("window.ZenithMorph.update()")
+                    scroll_progress.append(float(page.evaluate("window.ZenithMorph.progress()")))
+
+                first_service_button = page.locator('[data-service="NMEA 2000 networks"]')
+                first_service_button.click()
+                page.wait_for_timeout(30)
+                selected_service = page.locator("#service").input_value()
+                page.evaluate("window.scrollTo(0, 0)")
+                page.wait_for_timeout(80)
+
+                axe_results = axe.run(page)
+                axe_violations = [
+                    {
+                        "id": violation["id"],
+                        "impact": violation["impact"],
+                        "nodes": len(violation["nodes"]),
+                        "targets": [node["target"] for node in violation["nodes"]],
+                    }
+                    for violation in axe_results.response["violations"]
+                ]
+
+                if status != 200:
+                    browser_errors.append(f"HTTP status {status}")
+                if h1_count != 1:
+                    browser_errors.append(f"Expected one H1, found {h1_count}")
+                if card_count != 3 or symbol_count != 3:
+                    browser_errors.append(f"Expected 3 service cards/symbols, found {card_count}/{symbol_count}")
+                if morph_image_count != 2:
+                    browser_errors.append(f"Expected aligned blueprint/photo layers, found {morph_image_count}")
+                if hero_state_label_count:
+                    browser_errors.append(f"Hero state labels remain visible in source: {hero_state_label_count}")
+                if overflow > 1:
+                    browser_errors.append(f"Horizontal overflow {overflow}px")
+                if broken:
+                    browser_errors.append(f"Broken images: {broken}")
+                if unnamed:
+                    browser_errors.append(f"Unnamed interactive elements: {unnamed}")
+                if tel_count < 3:
+                    browser_errors.append(f"Expected repeated telephone actions, found {tel_count}")
+                if sms_count < 1:
+                    browser_errors.append(f"Expected direct SMS fallback, found {sms_count}")
+                if not all(term in offer_text for term in ("NMEA", "Starlink", "VHF", "FCC")):
+                    browser_errors.append(f"First-view offer is incomplete: {offer_text!r}")
+                if canonical_href != "https://zenithmarineelectronics.com/":
+                    browser_errors.append(f"Canonical URL is incorrect: {canonical_href!r}")
+                if social_image != "https://zenithmarineelectronics.com/assets/images/social.webp":
+                    browser_errors.append(f"Social image URL is incorrect: {social_image!r}")
+                if selected_service != "NMEA 2000 networks":
+                    browser_errors.append(f"Service preselection failed: {selected_service!r}")
+                if not booking_href.startswith(f"sms:{PHONE}?body=") or "NMEA%202000%20networks" not in booking_href:
+                    browser_errors.append(f"Booking SMS builder failed: {booking_href!r}")
+                if morph_states["blueprint"]["reveal"] != "0.00%":
+                    browser_errors.append(f"Blueprint state failed: {morph_states}")
+                if morph_states["middle"]["reveal"] != "50.00%":
+                    browser_errors.append(f"Middle morph state failed: {morph_states}")
+                if morph_states["vessel"]["reveal"] != "100.00%":
+                    browser_errors.append(f"Vessel state failed: {morph_states}")
+                if morph_states["reversed"]["reveal"] != "0.00%":
+                    browser_errors.append(f"Reverse morph state failed: {morph_states}")
+                if not (
+                    scroll_progress[0] < 0.5
+                    and scroll_progress[1] > scroll_progress[0] + 0.1
+                    and scroll_progress[2] >= 0.85
+                    and abs(scroll_progress[3] - scroll_progress[0]) <= 0.05
+                ):
+                    browser_errors.append(f"Scroll-linked forward/reverse progression failed: {scroll_progress}")
+                if axe_violations:
+                    browser_errors.append(f"Axe violations: {axe_violations}")
+
+                skip = page.locator(".skip-link")
+                skip.focus()
+                skip_visible = skip.evaluate(
+                    "el => { const r = el.getBoundingClientRect(); return r.top >= 0 && r.left >= 0 && r.width > 0 && r.height > 0; }"
+                )
+                if not skip_visible:
+                    browser_errors.append("Skip link is not visible when focused")
+
+                page.locator("#service").select_option("")
+                page.evaluate("document.activeElement?.blur(); window.scrollTo(0, 0)")
+                page.wait_for_timeout(80)
+
+                results["viewports"][name] = {
+                    "status": status,
+                    "h1": h1_count,
+                    "service_cards": card_count,
+                    "service_symbols": symbol_count,
+                    "morph_images": morph_image_count,
+                    "hero_state_labels": hero_state_label_count,
+                    "morph_states": morph_states,
+                    "scroll_progress": scroll_progress,
+                    "overflow_px": overflow,
+                    "images": len(images),
+                    "sms_actions": sms_count,
+                    "telephone_actions": tel_count,
+                    "service_preselection": selected_service,
+                    "booking_sms": booking_href,
+                    "skip_link_focus": skip_visible,
+                    "axe_violations": axe_violations,
+                    "errors": browser_errors,
+                }
+                errors.extend(f"{name}: {error}" for error in browser_errors)
+
+                if name == "desktop-1440":
+                    page.evaluate("window.ZenithMorph.render(0)")
+                    page.screenshot(path=str(PREVIEWS / "desktop-blueprint.png"), full_page=False)
+                    page.evaluate("window.ZenithMorph.render(0.5)")
+                    page.screenshot(path=str(PREVIEWS / "desktop-transform.png"), full_page=False)
+                    page.evaluate("window.ZenithMorph.render(1)")
+                    page.screenshot(path=str(PREVIEWS / "desktop-vessel.png"), full_page=False)
+                    page.add_style_tag(content="html.qa-static-capture .hero{min-height:auto!important} html.qa-static-capture .hero-sticky{position:relative!important;top:auto!important} html.qa-static-capture .morph-vessel{transform:none!important} html.qa-static-capture .morph-real{clip-path:inset(0)!important} html.qa-static-capture .morph-blueprint,html.qa-static-capture .morph-scan{display:none!important}")
+                    page.evaluate("document.documentElement.classList.add('qa-static-capture'); window.ZenithMorph.render(1)")
+                    page.screenshot(path=str(PREVIEWS / "desktop-full.png"), full_page=True)
+                elif name == "mobile-390":
+                    page.screenshot(path=str(PREVIEWS / "mobile-hero.png"), full_page=False)
+                    page.locator("[data-morph-stage]").scroll_into_view_if_needed()
+                    page.wait_for_timeout(120)
+                    page.evaluate("window.ZenithMorph.render(0)")
+                    page.wait_for_timeout(20)
+                    page.screenshot(path=str(PREVIEWS / "mobile-blueprint.png"), full_page=False)
+                    page.evaluate("window.ZenithMorph.render(1)")
+                    page.screenshot(path=str(PREVIEWS / "mobile-vessel.png"), full_page=False)
+                    page.evaluate("window.scrollTo(0, 0)")
+                    page.wait_for_timeout(80)
+                    page.evaluate("window.ZenithMorph.render(0)")
+                    page.screenshot(path=str(PREVIEWS / "mobile-full.png"), full_page=True)
+                context.close()
+
+            for name, (width, height) in {
+                "mobile-390": VIEWPORTS["mobile-390"],
+                "desktop-1440": VIEWPORTS["desktop-1440"],
+            }.items():
+                context = browser.new_context(
+                    viewport={"width": width, "height": height},
+                    device_scale_factor=1,
+                    reduced_motion="reduce",
+                )
+                page = context.new_page()
+                page.goto(f"{base_url}/", wait_until="networkidle")
+                page.wait_for_timeout(80)
+                reduced_state = page.evaluate(
+                    """() => {
+                      const stage = document.querySelector('[data-morph-stage]');
+                      const real = document.querySelector('.morph-real');
+                      const vessel = document.querySelector('.morph-vessel');
+                      const blueprint = document.querySelector('.morph-blueprint');
+                      const scan = document.querySelector('.morph-scan');
+                      const hero = document.querySelector('[data-morph-hero]');
+                      const sticky = document.querySelector('[data-morph-sticky]');
+                      return {
+                        matches: matchMedia('(prefers-reduced-motion: reduce)').matches,
+                        reveal: stage.style.getPropertyValue('--reveal'),
+                        real_clip: getComputedStyle(real).clipPath,
+                        vessel_transform: getComputedStyle(vessel).transform,
+                        blueprint_display: getComputedStyle(blueprint).display,
+                        scan_display: getComputedStyle(scan).display,
+                        hero_height: hero.getBoundingClientRect().height,
+                        sticky_height: sticky.getBoundingClientRect().height
+                      };
+                    }"""
+                )
+                reduced_errors: list[str] = []
+                if not reduced_state["matches"]:
+                    reduced_errors.append("Reduced-motion media query did not match")
+                if reduced_state["reveal"] != "100.00%":
+                    reduced_errors.append(f"Static vessel was not selected: {reduced_state}")
+                if reduced_state["real_clip"] not in ("inset(0px)", "inset(0px 0px 0px 0px)"):
+                    reduced_errors.append(f"Real vessel remained clipped: {reduced_state}")
+                if reduced_state["vessel_transform"] != "none":
+                    reduced_errors.append(f"Transform remained active: {reduced_state}")
+                if reduced_state["blueprint_display"] != "none" or reduced_state["scan_display"] != "none":
+                    reduced_errors.append(f"Motion decoration remained visible: {reduced_state}")
+                if abs(reduced_state["hero_height"] - reduced_state["sticky_height"]) > 2:
+                    reduced_errors.append(f"Reduced motion retained excess scroll range: {reduced_state}")
+                results["reduced_motion"][name] = {"state": reduced_state, "errors": reduced_errors}
+                errors.extend(f"reduced-{name}: {error}" for error in reduced_errors)
+                if name == "desktop-1440":
+                    page.screenshot(path=str(PREVIEWS / "desktop-reduced-motion.png"), full_page=False)
+                context.close()
+
+            browser.close()
+    finally:
+        if server:
+            server.shutdown()
+            server.server_close()
+
+    results["pass"] = not errors
+    results["errors"] = errors
+    (PREVIEWS / "qa-results.json").write_text(json.dumps(results, indent=2), encoding="utf-8")
+
+    lines = [
+        "# Zenith Service First — QA Report",
+        "",
+        f"**Result:** {'PASS' if not errors else 'FAIL'}",
+        "",
+        "## Coverage",
+        "",
+        "- Local references, in-page anchors, and one H1",
+        "- Exactly three service cards and three custom symbols",
+        "- Complete first-view offer: NMEA, Starlink, VHF, and FCC",
+        "- Pure-vector, text-free blueprint/photo layers and deterministic 0/50/100/reverse states",
+        "- Real scroll-linked forward and reverse progression",
+        "- Working service preselection and deterministic booking-SMS builder",
+        "- Image loading and interactive accessible names",
+        "- Telephone/SMS targets and skip-link focus",
+        "- Axe accessibility audit and reduced-motion static fallback",
+        "- Console/page errors and horizontal overflow at 320, 390, 768, and 1440 px",
+        "- Desktop/mobile blueprint, transition, vessel, and full-page captures",
+        "",
+        "## Viewports",
+        "",
+    ]
+    for name, data in results["viewports"].items():
+        viewport_status = "PASS" if not data["errors"] else "FAIL"
+        lines.append(
+            f"- **{name}:** {viewport_status} · overflow {data['overflow_px']} px · "
+            f"{data['service_cards']} service cards · {data['images']} images · scroll {data['scroll_progress']}"
+        )
+    if errors:
+        lines.extend(["", "## Errors", ""] + [f"- {error}" for error in errors])
+    else:
+        lines.extend(
+            [
+                "",
+                "No broken assets, invalid local links, horizontal overflow, browser errors, failed interactions, failed morph states, or Axe violations were observed.",
+            ]
+        )
+    (PREVIEWS / "QA-REPORT.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+    print(json.dumps(results, indent=2))
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(run())

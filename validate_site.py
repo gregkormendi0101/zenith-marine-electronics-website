@@ -10,13 +10,8 @@ from urllib.parse import urlsplit
 from bs4 import BeautifulSoup
 
 ROOT = Path(__file__).resolve().parent
-PAGES = {
-    "index.html": "https://zenithmarineelectronics.com/",
-    "nmea-networks.html": "https://zenithmarineelectronics.com/nmea-networks.html",
-    "marine-electronics.html": "https://zenithmarineelectronics.com/marine-electronics.html",
-    "marine-radio-fcc.html": "https://zenithmarineelectronics.com/marine-radio-fcc.html",
-}
-SERVICE_PAGES = [name for name in PAGES if name != "index.html"]
+CANONICAL = "https://zenithmarineelectronics.com/"
+PHONE = "+13053066391"
 MAX_ASSET_BYTES = 400 * 1024
 errors: list[str] = []
 
@@ -32,108 +27,87 @@ def local_target(raw: str) -> Path | None:
     split = urlsplit(raw)
     if split.scheme or split.netloc:
         return None
-    path = split.path
-    if not path:
-        return None
-    return ROOT / path
+    return ROOT / split.path
 
 
-soups: dict[str, BeautifulSoup] = {}
-all_html = ""
-for filename, canonical in PAGES.items():
-    path = ROOT / filename
-    check(path.exists(), f"missing page: {filename}")
-    if not path.exists():
-        continue
-    source = path.read_text(encoding="utf-8")
-    all_html += source + "\n"
-    soup = BeautifulSoup(source, "html.parser")
-    soups[filename] = soup
+html_path = ROOT / "index.html"
+check(html_path.exists(), "missing index.html")
+source = html_path.read_text(encoding="utf-8") if html_path.exists() else ""
+soup = BeautifulSoup(source, "html.parser")
 
-    check(len(soup.find_all("h1")) == 1, f"{filename}: expected exactly one h1")
-    canonical_tag = soup.find("link", rel="canonical")
-    check(bool(canonical_tag and canonical_tag.get("href") == canonical), f"{filename}: incorrect canonical")
-    check(bool(soup.find("meta", attrs={"name": "description", "content": True})), f"{filename}: missing meta description")
-    check(bool(soup.find("meta", attrs={"property": "og:image", "content": True})), f"{filename}: missing social image")
-    check(len(soup.select(".primary-nav a")) == 3, f"{filename}: primary navigation must expose all three specialties")
-    check(soup.get_text(" ", strip=True).count("305-306-6391") == 1, f"{filename}: visible phone number must appear exactly once")
+check(len(soup.find_all("h1")) == 1, "expected exactly one h1")
+check(len(soup.select(".service-card")) == 3, "expected exactly three service cards")
+check(len(soup.select(".service-symbol")) == 3, "expected exactly three service symbols")
+check(bool(soup.find("meta", attrs={"name": "description", "content": True})), "missing meta description")
+canonical = soup.find("link", rel="canonical")
+check(bool(canonical and canonical.get("href") == CANONICAL), "incorrect canonical URL")
+for prop in ("og:title", "og:description", "og:url", "og:image"):
+    check(bool(soup.find("meta", attrs={"property": prop, "content": True})), f"missing {prop}")
+for name in ("twitter:card", "twitter:title", "twitter:description", "twitter:image"):
+    check(bool(soup.find("meta", attrs={"name": name, "content": True})), f"missing {name}")
 
-    scripts = soup.find_all("script", attrs={"type": "application/ld+json"})
-    check(len(scripts) == 1, f"{filename}: expected one JSON-LD block")
-    for block in scripts:
-        try:
-            json.loads(block.string or block.get_text())
-        except Exception as exc:
-            errors.append(f"{filename}: invalid JSON-LD: {exc}")
+schemas = soup.find_all("script", attrs={"type": "application/ld+json"})
+check(len(schemas) == 1, "expected one JSON-LD block")
+for block in schemas:
+    try:
+        data = json.loads(block.string or block.get_text())
+        check(data.get("url") == CANONICAL, "JSON-LD canonical URL is wrong")
+        check(re.sub(r"\D", "", data.get("telephone", "")) == PHONE.lstrip("+"), "JSON-LD telephone is wrong")
+    except Exception as exc:
+        errors.append(f"invalid JSON-LD: {exc}")
 
-    for tag in soup.find_all(["a", "img", "link", "script", "source"]):
-        for attr in ("href", "src", "srcset"):
-            raw = tag.get(attr)
-            if not raw:
-                continue
-            candidates = [part.strip().split(" ")[0] for part in raw.split(",")] if attr == "srcset" else [raw]
-            for candidate in candidates:
-                target = local_target(candidate)
-                check(target is None or target.exists(), f"{filename}: broken local reference {candidate}")
+for tag in soup.find_all(["a", "img", "link", "script", "source"]):
+    for attr in ("href", "src", "srcset"):
+        raw = tag.get(attr)
+        if not raw:
+            continue
+        candidates = [part.strip().split(" ")[0] for part in raw.split(",")] if attr == "srcset" else [raw]
+        for candidate in candidates:
+            target = local_target(candidate)
+            check(target is None or target.exists(), f"broken local reference: {candidate}")
 
-    for image in soup.find_all("img"):
-        check(image.has_attr("alt"), f"{filename}: image missing alt text: {image.get('src')}")
-        check(image.has_attr("width") and image.has_attr("height"), f"{filename}: image missing intrinsic dimensions: {image.get('src')}")
+for image in soup.find_all("img"):
+    check(image.has_attr("alt"), f"image missing alt text: {image.get('src')}")
+    check(image.has_attr("width") and image.has_attr("height"), f"image missing intrinsic dimensions: {image.get('src')}")
 
-    lowered = source.lower()
-    check("assets/diagrams" not in lowered, f"{filename}: retired diagram asset referenced")
-    check("blueprint" not in lowered, f"{filename}: retired blueprint language remains")
-    check("fcc inspector" not in lowered, f"{filename}: bare FCC inspector wording is not allowed")
+visible = soup.get_text(" ", strip=True)
+for phrase in ("NMEA 2000 Networks", "Starlink Systems", "VHF Radio & FCC Inspections", "Key Largo", "Tavernier", "Islamorada"):
+    check(phrase in visible, f"missing public offer phrase: {phrase}")
+check(all(term in (soup.find("h1").get_text(" ") if soup.find("h1") else "") for term in ("NMEA", "Starlink", "VHF", "FCC")), "first-view offer is incomplete")
+check(len(soup.select(f'a[href="tel:{PHONE}"]')) >= 3, "telephone actions are missing or inconsistent")
+check(len(soup.select(f'a[href="sms:{PHONE}"]')) >= 1, "SMS fallback is missing or inconsistent")
+check(not soup.select(".morph-status, .morph-instruction"), "hero-state labels remain")
 
-home = soups.get("index.html")
-if home:
-    tabs = home.select("[data-system-target]")
-    panels = home.select("[data-system-panel]")
-    check(len(tabs) == 3, "home: expected exactly three system tabs")
-    check(len(panels) == 3, "home: expected exactly three system panels")
-    check({t.get("data-system-target") for t in tabs} == {"nmea", "electronics", "radio"}, "home: incorrect system tab names")
-    check({p.get("data-system-panel") for p in panels} == {"nmea", "electronics", "radio"}, "home: incorrect system panel names")
-    for target in ("nmea-networks.html", "marine-electronics.html", "marine-radio-fcc.html"):
-        check(bool(home.find("a", href=target)), f"home: missing dedicated-page link to {target}")
-    visible = home.get_text(" ", strip=True).lower()
-    for phrase in ("nmea networks", "marine electronics", "marine radio + fcc", "fcc ship-radio inspections"):
-        check(phrase in visible, f"home: missing offer phrase '{phrase}'")
-
-for filename in SERVICE_PAGES:
-    soup = soups.get(filename)
-    if not soup:
-        continue
-    check(len(soup.select(".scope-grid > article")) == 3, f"{filename}: expected three scope lanes")
-    check(len(soup.select(".process-section ol > li")) == 4, f"{filename}: expected four process steps")
-    check(len(soup.select(".service-switcher > a")) == 2, f"{filename}: expected two specialty switcher links")
-    check(len(soup.select(".detail-visual")) == 1, f"{filename}: expected one primary system visual")
-
-check(all_html.count("assets/credentials/nmea.jpg") == 1, "site: official NMEA logo must appear exactly once")
-for forbidden in ("black swan marine", "92157 overseas", "3324 deer creek", "4251 nw 5th", "pg00081279", "#8033", "#6332"):
-    check(forbidden not in all_html.lower(), f"site: private, stale or superseded text found: {forbidden}")
+lowered = source.lower()
+for forbidden in ("black swan marine", "92157 overseas", "3324 deer creek", "4251 nw 5th", "pg00081279", "#8033", "#6332", "fcc inspector", "fully insured"):
+    check(forbidden not in lowered, f"private, stale, or unapproved wording found: {forbidden}")
+for old_page in ("nmea-networks.html", "marine-electronics.html", "marine-radio-fcc.html"):
+    check(not (ROOT / old_page).exists(), f"retired page remains: {old_page}")
 
 css = (ROOT / "styles.css").read_text(encoding="utf-8")
-check("blueprint" not in css.lower(), "styles.css: retired blueprint styling remains")
-check("grid-template" in css, "styles.css: expected responsive layout rules")
-check("prefers-reduced-motion" in css, "styles.css: missing reduced-motion support")
+for raw in re.findall(r'url\(["\']?([^"\')]+)', css):
+    target = local_target(raw)
+    check(target is None or target.exists(), f"missing CSS asset: {raw}")
+check("prefers-reduced-motion" in css, "missing reduced-motion support")
 
-script = (ROOT / "script.js").read_text(encoding="utf-8")
-for required in ("data-system-target", "IntersectionObserver", "utm_source", "lead_action", "--parallax-y"):
-    check(required in script, f"script.js: missing behavior marker {required}")
+script = (ROOT / "app.js").read_text(encoding="utf-8")
+for marker in ("window.ZenithBooking", "window.ZenithMorph", "requestAnimationFrame"):
+    check(marker in script, f"app.js missing behavior marker: {marker}")
 
-sitemap = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
-for canonical in PAGES.values():
-    check(canonical in sitemap, f"sitemap missing {canonical}")
+for blueprint_name in ("hero-blueprint.svg", "hero-blueprint-mobile.svg"):
+    blueprint = (ROOT / "assets" / blueprint_name).read_text(encoding="utf-8")
+    check("<image" not in blueprint, f"{blueprint_name} embeds raster artwork")
+    check("<text" not in blueprint, f"{blueprint_name} contains visible text")
+    check(blueprint.count("<path") >= 20, f"{blueprint_name} lacks drafted linework")
 
-referenced_renders = set(re.findall(r"assets/renders/[a-z0-9-]+\.webp", all_html))
-actual_renders = {str(path.relative_to(ROOT)) for path in (ROOT / "assets" / "renders").glob("*.webp")}
-check(referenced_renders == actual_renders, f"render references differ from production files: refs={sorted(referenced_renders)} files={sorted(actual_renders)}")
+check((ROOT / "CNAME").read_text(encoding="utf-8").strip() == "zenithmarineelectronics.com", "CNAME is wrong")
+check(CANONICAL in (ROOT / "sitemap.xml").read_text(encoding="utf-8"), "sitemap lacks canonical URL")
+check("Sitemap: https://zenithmarineelectronics.com/sitemap.xml" in (ROOT / "robots.txt").read_text(encoding="utf-8"), "robots.txt lacks sitemap")
+check((ROOT / "assets/images/social.webp").exists(), "social image is missing")
 
 for path in (ROOT / "assets").rglob("*"):
-    if not path.is_file() or path.name == ".DS_Store":
-        continue
-    size = path.stat().st_size
-    check(size <= MAX_ASSET_BYTES, f"asset exceeds 400KB: {path.relative_to(ROOT)} ({size} bytes)")
+    if path.is_file() and path.name != ".DS_Store":
+        check(path.stat().st_size <= MAX_ASSET_BYTES, f"asset exceeds 400KB: {path.relative_to(ROOT)} ({path.stat().st_size} bytes)")
 
 if errors:
     print(f"VALIDATION FAILED ({len(errors)} issue(s))")
@@ -142,7 +116,7 @@ if errors:
     sys.exit(1)
 
 print("VALIDATION PASSED")
-print(f"- pages: {len(PAGES)}")
-print(f"- home systems: {len(home.select('[data-system-panel]')) if home else 0}")
-print(f"- production renders: {len(actual_renders)}")
-print("- public wording, metadata, references, privacy and asset budget: pass")
+print("- one-page Service First production build")
+print("- metadata, JSON-LD, canonical, sitemap, robots, and CNAME: pass")
+print("- public wording, privacy limits, local references, and asset budget: pass")
+print("- vector blueprint, three service lanes, booking actions, and reduced motion: pass")

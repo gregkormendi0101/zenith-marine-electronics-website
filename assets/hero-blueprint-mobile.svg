@@ -1,0 +1,125 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="900" viewBox="0 0 1200 900" role="img" aria-label="Vector blueprint side elevation of a motor yacht">
+  <defs>
+    <linearGradient id="blueprint-bg" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#031421"/>
+      <stop offset="0.58" stop-color="#06253a"/>
+      <stop offset="1" stop-color="#08334a"/>
+    </linearGradient>
+    <pattern id="minor-grid" width="32" height="32" patternUnits="userSpaceOnUse">
+      <path d="M32 0H0V32" fill="none" stroke="#4bc6cf" stroke-opacity="0.055" stroke-width="1"/>
+    </pattern>
+    <pattern id="major-grid" width="160" height="160" patternUnits="userSpaceOnUse">
+      <rect width="160" height="160" fill="url(#minor-grid)"/>
+      <path d="M160 0H0V160" fill="none" stroke="#66dce2" stroke-opacity="0.11" stroke-width="1.25"/>
+    </pattern>
+    <clipPath id="hull-clip"><path d="M690 580
+C735 590 770 676 830 742
+C852 768 884 776 928 778
+C1310 790 1788 798 2345 785
+L2320 752
+C2290 718 2262 690 2218 673
+C1978 635 1738 607 1460 590
+C1195 578 930 573 690 580Z"/></clipPath>
+    <style>
+      .body-fill{fill:#0b3448;fill-opacity:.58}
+      .body-fill-light{fill:#16485a;fill-opacity:.34}
+      .major{fill:none;stroke:#b6f6f5;stroke-width:4.5;stroke-linecap:round;stroke-linejoin:round}
+      .secondary{fill:none;stroke:#62d7dc;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+      .fine{fill:none;stroke:#3caab7;stroke-width:1.45;stroke-linecap:round;stroke-linejoin:round;opacity:.9}
+      .stations{fill:none;stroke:#53c7cf;stroke-width:1.15;stroke-dasharray:8 11;opacity:.22}
+      .construction{fill:none;stroke:#57cbd2;stroke-width:1.25;stroke-dasharray:7 11;opacity:.28}
+    </style>
+  </defs>
+  <rect width="100%" height="100%" fill="url(#blueprint-bg)"/>
+  <rect width="100%" height="100%" fill="url(#major-grid)"/>
+  <g transform="matrix(0.75 0 0 0.75 -492 0)">
+
+  <g id="vessel-elevation">
+    <g class="construction">
+      <path d="M632 838H2390"/>
+      <path d="M690 822V854M930 828V848M1170 828V848M1410 828V848M1650 828V848M1890 828V848M2130 828V848M2370 822V854"/>
+      <path d="M2390 390V822M2374 440H2400M2374 580H2400M2374 720H2400M2374 810H2400"/>
+      <circle cx="1600" cy="610" r="178"/>
+      <path d="M1400 610H1800M1600 410V810"/>
+    </g>
+
+    <path class="body-fill" d="M690 580
+C735 590 770 676 830 742
+C852 768 884 776 928 778
+C1310 790 1788 798 2345 785
+L2320 752
+C2290 718 2262 690 2218 673
+C1978 635 1738 607 1460 590
+C1195 578 930 573 690 580Z"/>
+    <path class="body-fill-light" d="M700 578C1050 571 1360 576 1460 590C1740 607 1978 635 2218 673L2254 702C1760 630 1220 596 700 596Z"/>
+
+    <g clip-path="url(#hull-clip)" class="stations">
+      <path d="M900 555V810M1120 555V810M1340 555V810M1560 555V810M1780 555V810M2000 555V810M2220 555V810"/>
+      <path d="M650 624H2390M650 676H2390M650 728H2390"/>
+    </g>
+
+    <g class="major">
+      <path d="M690 580
+C735 590 770 676 830 742
+C852 768 884 776 928 778
+C1310 790 1788 798 2345 785
+L2320 752
+C2290 718 2262 690 2218 673
+C1978 635 1738 607 1460 590
+C1195 578 930 573 690 580Z"/>
+      <path d="M690 580C1080 571 1650 586 2218 673"/>
+      <path d="M787 676C1130 728 1670 758 2318 758"/>
+      <path d="M830 742C1210 776 1780 787 2345 785"/>
+      <path d="M2040 752L2354 753L2390 777L2345 785L2036 781"/>
+
+      <path d="M1248 560C1310 544 1334 511 1390 481C1450 449 1534 430 1610 428C1754 430 1894 466 2028 511L1982 530C1948 536 1922 555 1904 590C1650 568 1458 556 1248 560Z"/>
+      <path d="M1302 546C1385 500 1468 467 1578 445C1740 444 1880 474 1993 514"/>
+      <path d="M2015 511L2070 512L2010 535L1978 532"/>
+
+      <path d="M1328 523L1396 489L1490 481L1517 548L1356 545Z"/>
+      <path d="M1510 482C1655 480 1805 493 1914 526L1970 590C1784 575 1644 560 1517 549Z"/>
+
+      <path d="M1768 446V416C1768 395 1778 384 1801 384C1823 384 1835 396 1835 417V446Z"/>
+      <path d="M1754 449H1850M1779 454H1832"/>
+      <path d="M1818 385V258M1913 478V214"/>
+
+      <path d="M711 519C920 511 1110 519 1310 545"/>
+      <path d="M2193 652C2260 650 2311 666 2350 696"/>
+    </g>
+
+    <g class="secondary">
+      <path d="M706 596C1130 598 1690 624 2254 702"/>
+      <path d="M756 642C1130 683 1700 717 2295 734"/>
+      <path d="M860 758C1260 788 1770 794 2315 783"/>
+      <path d="M2076 734H2327M2058 747H2350"/>
+
+      <path d="M1517 483V549M1653 484V559M1793 494V572M1914 526L1896 584"/>
+      <path d="M1374 510L1428 544M1466 488L1498 547"/>
+      <path d="M1258 559L1380 555M1904 590L2040 612"/>
+      <path d="M1430 466C1545 420 1775 425 1950 491"/>
+      <path d="M1487 447L1510 435M1690 429L1710 442M1883 459L1904 476"/>
+
+      <path d="M713 520L730 570M790 514L814 572M880 512L908 572M982 514L1010 574M1085 519L1113 577M1190 530L1218 581M1290 541L1310 560"/>
+      <path d="M2200 652L2218 675M2260 654L2278 687M2313 669L2329 699"/>
+
+      <path d="M675 578L650 592L674 607L713 594"/>
+      <path d="M655 588L635 585L627 599L653 605"/>
+      <circle cx="966" cy="642" r="7"/>
+      <circle cx="1134" cy="660" r="7"/>
+      <circle cx="1453" cy="690" r="7"/>
+      <circle cx="1945" cy="724" r="7"/>
+    </g>
+
+    <g class="fine">
+      <path d="M731 610C1080 622 1620 652 2220 713"/>
+      <path d="M771 661C1150 707 1705 741 2306 748"/>
+      <path d="M849 738C1240 765 1800 776 2337 774"/>
+      <path d="M2020 620C2080 632 2142 644 2208 662"/>
+      <path d="M1345 566L1345 587M1455 570L1455 595M1565 582L1565 605M1680 591L1680 620M1800 604L1800 636M1920 620L1920 651M2040 640L2040 669M2160 660L2160 690"/>
+      <path d="M1567 455H1740M1790 468H1915"/>
+      <path d="M1791 404C1798 398 1807 398 1814 404"/>
+    </g>
+  </g>
+
+  </g>
+</svg>

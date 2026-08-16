@@ -1,20 +1,31 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="no-js">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-  <meta name="theme-color" content="#f3f7f6">
-  <meta name="description" content="Zenith Marine Electronics specializes in NMEA networks, marine electronics installation, and marine radio service with FCC ship-radio inspections in the Upper Florida Keys.">
+  <meta name="theme-color" content="#071f35">
+  <meta name="description" content="Mobile NMEA 2000 network service, marine Starlink installation, VHF/DSC/AIS service, and non-GMDSS ship-radio inspections in the Upper Florida Keys.">
   <meta property="og:type" content="website">
-  <meta property="og:title" content="Zenith Marine Electronics | Three Critical Marine Systems">
-  <meta property="og:description" content="NMEA networks. Marine electronics installation. Marine radio service and FCC ship-radio inspections.">
+  <meta property="og:site_name" content="Zenith Marine Electronics">
+  <meta property="og:title" content="Zenith Marine Electronics | NMEA, Starlink &amp; Marine Radio">
+  <meta property="og:description" content="NMEA 2000 networks, marine Starlink systems, and VHF radio service with non-GMDSS ship-radio inspections in the Upper Florida Keys.">
   <meta property="og:url" content="https://zenithmarineelectronics.com/">
   <meta property="og:image" content="https://zenithmarineelectronics.com/assets/images/social.webp">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
   <meta name="twitter:card" content="summary_large_image">
-  <title>Zenith Marine Electronics | NMEA, Installation & Marine Radio</title>
+  <meta name="twitter:title" content="Zenith Marine Electronics | NMEA, Starlink &amp; Marine Radio">
+  <meta name="twitter:description" content="Mobile marine-electronics service in Key Largo, Tavernier, and Islamorada.">
+  <meta name="twitter:image" content="https://zenithmarineelectronics.com/assets/images/social.webp">
+  <title>Zenith Marine Electronics | NMEA, Starlink &amp; Marine Radio</title>
   <link rel="canonical" href="https://zenithmarineelectronics.com/">
   <link rel="icon" href="assets/brand/favicon.png" type="image/png">
-  <link rel="stylesheet" href="styles.css?v=6">
+  <link rel="preload" href="assets/hero-blueprint.svg" as="image" type="image/svg+xml" media="(min-width: 821px)">
+  <link rel="preload" href="assets/hero-yacht.webp" as="image" type="image/webp" media="(min-width: 821px)">
+  <link rel="preload" href="assets/hero-blueprint-mobile.svg" as="image" type="image/svg+xml" media="(max-width: 820px)">
+  <link rel="preload" href="assets/hero-yacht-mobile.webp" as="image" type="image/webp" media="(max-width: 820px)">
+  <link rel="stylesheet" href="styles.css?v=20260816">
+  <script>document.documentElement.classList.replace('no-js', 'js');</script>
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -22,188 +33,268 @@
     "name": "Zenith Marine Electronics",
     "url": "https://zenithmarineelectronics.com/",
     "telephone": "+1-305-306-6391",
-    "areaServed": ["Key Largo, Florida", "Tavernier, Florida", "Islamorada, Florida"],
-    "description": "Mobile NMEA network service, marine electronics installation, marine radio service and FCC ship-radio inspections in the Upper Florida Keys.",
+    "image": "https://zenithmarineelectronics.com/assets/images/social.webp",
+    "description": "Mobile NMEA 2000 network service, marine Starlink installation, VHF radio service, and non-GMDSS ship-radio inspections in the Upper Florida Keys.",
+    "areaServed": [
+      {"@type": "City", "name": "Key Largo, Florida"},
+      {"@type": "City", "name": "Tavernier, Florida"},
+      {"@type": "City", "name": "Islamorada, Florida"}
+    ],
     "hasOfferCatalog": {
       "@type": "OfferCatalog",
-      "name": "Marine electronics specialties",
+      "name": "Marine electronics services",
       "itemListElement": [
-        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "NMEA network diagnostics, integration and commissioning", "url": "https://zenithmarineelectronics.com/nmea-networks.html"}},
-        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Marine electronics installation and commissioning", "url": "https://zenithmarineelectronics.com/marine-electronics.html"}},
-        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Marine radio service and compulsory non-GMDSS ship-radio inspections", "url": "https://zenithmarineelectronics.com/marine-radio-fcc.html"}}
+        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "NMEA 2000 network service", "url": "https://zenithmarineelectronics.com/#nmea-service"}},
+        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "Marine Starlink systems", "url": "https://zenithmarineelectronics.com/#starlink-service"}},
+        {"@type": "Offer", "itemOffered": {"@type": "Service", "name": "VHF radio service and non-GMDSS ship-radio inspections", "url": "https://zenithmarineelectronics.com/#radio-service"}}
       ]
     }
   }
   </script>
 </head>
-<body class="home-page" data-page="home">
+<body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <div class="ambient ambient-one" aria-hidden="true"></div>
-  <div class="ambient ambient-two" aria-hidden="true"></div>
+
+  <svg class="svg-sprite" aria-hidden="true" focusable="false">
+    <symbol id="icon-nmea" viewBox="0 0 120 120">
+      <path d="M60 16 98 38v44L60 104 22 82V38Z" fill="none" stroke="#3fd0d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M60 16v88M22 38l76 44M98 38 22 82" fill="none" stroke="#ecffff" stroke-width="1.6" stroke-linecap="round" opacity=".78"/>
+      <path d="M60 60 22 38M60 60l38-22M60 60l38 22M60 60l-38 22" fill="none" stroke="#3fd0d8" stroke-width="1.6" stroke-linecap="round" opacity=".78"/>
+      <circle cx="60" cy="16" r="7" fill="#ecffff"/>
+      <circle cx="98" cy="38" r="7" fill="#3fd0d8"/>
+      <circle cx="98" cy="82" r="7" fill="#ecffff"/>
+      <circle cx="60" cy="104" r="7" fill="#3fd0d8"/>
+      <circle cx="22" cy="82" r="7" fill="#ecffff"/>
+      <circle cx="22" cy="38" r="7" fill="#3fd0d8"/>
+      <path d="m60 39 18 10v22L60 81 42 71V49Z" fill="#3fd0d8"/>
+      <circle cx="60" cy="60" r="7" fill="#061f35"/>
+    </symbol>
+    <symbol id="icon-starlink" viewBox="0 0 120 120">
+      <g transform="rotate(-13 60 46)">
+        <rect x="49" y="34" width="22" height="24" rx="4" fill="#3fd0d8"/>
+        <path d="M18 31h27v28H18ZM75 31h27v28H75Z" fill="#ecffff"/>
+        <path d="M27 31v28M36 31v28M84 31v28M93 31v28M18 45h27M75 45h27" fill="none" stroke="#061f35" stroke-width="1.6" opacity=".78"/>
+        <path d="M45 45h4M71 45h4M60 34V23M55 23h10" fill="none" stroke="#ecffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+      </g>
+      <path d="M13 85Q60 111 107 85" fill="none" stroke="#3fd0d8" stroke-width="3" stroke-linecap="round"/>
+      <path d="M30 91q30 14 60 0" fill="none" stroke="#ecffff" stroke-width="1.6" stroke-linecap="round" opacity=".78"/>
+      <path d="m52 61-19 25M60 62v34M68 60l20 26" fill="none" stroke="#3fd0d8" stroke-width="3" stroke-linecap="round" stroke-dasharray="3 5"/>
+      <circle cx="60" cy="96" r="4" fill="#ecffff"/>
+    </symbol>
+    <symbol id="icon-radio" viewBox="0 0 120 120">
+      <path d="M60 13 101 29v30c0 25-16 40-41 49-25-9-41-24-41-49V29Z" fill="#3fd0d8"/>
+      <path d="M60 23 91 35v24c0 18-11 30-31 38-20-8-31-20-31-38V35Z" fill="#061f35"/>
+      <path d="M34 61h10c4-18 8-18 12 0s8 18 12 0 8-18 12 0h7" fill="none" stroke="#ecffff" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M36 43h48M39 79h42" fill="none" stroke="#3fd0d8" stroke-width="1.6" stroke-linecap="round" opacity=".78"/>
+      <circle cx="39" cy="43" r="3" fill="#ecffff"/>
+      <circle cx="81" cy="43" r="3" fill="#ecffff"/>
+      <path d="m50 88 10 5 10-5" fill="none" stroke="#3fd0d8" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+    </symbol>
+    <symbol id="icon-check" viewBox="0 0 24 24">
+      <path d="m5 12 4 4L19 6"/>
+    </symbol>
+    <symbol id="icon-phone" viewBox="0 0 24 24">
+      <path d="M7.5 3.5 10 8 8.4 9.6c1.2 2.8 3.2 4.8 6 6l1.6-1.6 4.5 2.5-.7 3c-.2.8-.9 1.4-1.8 1.4C9.8 20.9 3.1 14.2 3.1 6c0-.9.6-1.6 1.4-1.8l3-.7Z"/>
+    </symbol>
+  </svg>
 
   <header class="site-header" data-header>
-    <div class="header-inner shell">
-      <a class="brand" href="index.html" aria-label="Zenith Marine Electronics home">
+    <div class="shell header-inner">
+      <a class="brand" href="#top" aria-label="Zenith Marine Electronics home">
         <img src="assets/brand/zenith-full.webp" alt="Zenith Marine Electronics" width="1500" height="618">
       </a>
       <nav class="primary-nav" aria-label="Primary navigation">
-        <a href="nmea-networks.html">NMEA</a>
-        <a href="marine-electronics.html">Electronics</a>
-        <a href="marine-radio-fcc.html">Radio + FCC</a>
+        <a href="#services">Services</a>
+        <a href="#qualifications">Qualifications</a>
+        <a href="#service-area">Service area</a>
       </nav>
-      <a class="header-cta track" href="sms:+13053066391?body=Hi%20Zenith%2C%20I%20need%20help%20with%20my%20boat%27s%20electronics.%20Boat%20location%3A%20" data-event="header_text">Request service <span aria-hidden="true">↗</span></a>
+      <div class="header-actions">
+        <a class="header-phone" href="tel:+13053066391">305-306-6391</a>
+        <a class="button button-small" href="#book">Book service</a>
+      </div>
     </div>
   </header>
 
   <main id="main">
-    <section class="hero shell" aria-labelledby="home-title">
-      <div class="hero-copy" data-reveal>
-        <p class="eyebrow"><span></span> Mobile service · Upper Florida Keys</p>
-        <h1 id="home-title">Three critical systems.<br><em>One clear standard.</em></h1>
-        <p class="hero-lede">NMEA networks. Marine electronics installation. Marine radio service and FCC ship-radio inspections.</p>
-        <a class="button button-dark" href="#systems">Explore the three specialties <span aria-hidden="true">↓</span></a>
+    <section class="hero hero-morph" id="top" aria-labelledby="hero-title" data-morph-hero>
+      <div class="hero-sticky" data-morph-sticky>
+        <figure class="hero-media" data-morph-stage>
+          <div class="morph-vessel" aria-hidden="true">
+            <picture class="morph-layer morph-blueprint">
+              <source media="(max-width: 820px)" srcset="assets/hero-blueprint-mobile.svg">
+              <img src="assets/hero-blueprint.svg" alt="" width="2400" height="1200">
+            </picture>
+            <picture class="morph-layer morph-real">
+              <source media="(max-width: 820px)" srcset="assets/hero-yacht-mobile.webp">
+              <img src="assets/hero-yacht.webp" alt="" width="2400" height="1200">
+            </picture>
+            <span class="morph-scan" aria-hidden="true"></span>
+          </div>
+          <figcaption class="visually-hidden">Decorative generated vessel changing from a hand-traced vector blueprint drawing to the source image as the page scrolls. Service claims are stated in the page text.</figcaption>
+        </figure>
+        <div class="hero-copy">
+          <p class="eyebrow">Mobile marine electronics · Upper Florida Keys</p>
+          <h1 id="hero-title">NMEA networks.<br>Starlink.<br>VHF &amp; FCC inspections.</h1>
+          <p class="hero-lede">Diagnosis, installation, and verification by an Advanced NMEA 2000 Installer and FCC-licensed GROL technician.</p>
+          <p class="hero-location">Key Largo <span>·</span> Tavernier <span>·</span> Islamorada</p>
+          <div class="hero-actions">
+            <a class="button button-hero" href="#book">Book service</a>
+            <a class="hero-call" href="tel:+13053066391">
+              <svg aria-hidden="true"><use href="#icon-phone"/></svg>
+              Call 305-306-6391
+            </a>
+          </div>
+        </div>
       </div>
-      <aside class="hero-orbit" aria-label="Zenith service approach" data-reveal>
-        <div class="orbit-rings" aria-hidden="true"><i></i><i></i><i></i><b></b></div>
-        <p><strong>Diagnose.</strong><strong>Integrate.</strong><strong>Verify.</strong></p>
-      </aside>
     </section>
 
-    <section class="systems-section shell" id="systems" aria-labelledby="systems-title">
-      <div class="section-intro" data-reveal>
-        <p class="eyebrow"><span></span> Zenith systems console</p>
-        <h2 id="systems-title">Choose the system.</h2>
-        <p>The offer is simple. Select a specialty, see the system, then open its dedicated service page.</p>
-      </div>
+    <section class="services section" id="services" aria-labelledby="services-title">
+      <div class="shell">
+        <div class="section-heading">
+          <p class="eyebrow eyebrow-dark">Services</p>
+          <h2 id="services-title">What you can book</h2>
+          <p>Select the service you need. The booking form asks for the information required to scope and schedule it.</p>
+        </div>
 
-      <div class="system-console" data-system-tabs data-reveal>
-        <div class="system-tabs" role="tablist" aria-label="Zenith specialties">
-          <button id="tab-nmea" class="system-tab is-active" type="button" role="tab" aria-selected="true" aria-controls="panel-nmea" data-system-target="nmea">
-            <span class="tab-index">01</span>
-            <span><strong>NMEA Networks</strong><small>Diagnose · Integrate · Commission</small></span>
-            <b aria-hidden="true">↗</b>
-          </button>
-          <button id="tab-electronics" class="system-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-electronics" tabindex="-1" data-system-target="electronics">
-            <span class="tab-index">02</span>
-            <span><strong>Marine Electronics</strong><small>Plan · Install · Commission</small></span>
-            <b aria-hidden="true">↗</b>
-          </button>
-          <button id="tab-radio" class="system-tab" type="button" role="tab" aria-selected="false" aria-controls="panel-radio" tabindex="-1" data-system-target="radio">
-            <span class="tab-index">03</span>
-            <span><strong>Marine Radio + FCC</strong><small>Service · Test · Inspect</small></span>
-            <b aria-hidden="true">↗</b>
-          </button>
-          <div class="console-note">
-            <span>Qualified field service</span>
-            <strong>Key Largo → Islamorada</strong>
+        <div class="service-grid">
+          <article class="service-card" id="nmea-service">
+            <div class="service-topline">
+              <span class="service-number">01</span>
+              <span class="service-symbol" aria-hidden="true">
+                <svg><use href="#icon-nmea"/></svg>
+              </span>
+            </div>
+            <h3>NMEA 2000 Networks</h3>
+            <p class="service-scope">Troubleshooting, additions, integration, and commissioning.</p>
+            <ul class="service-list">
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>Backbone, drop, power, and termination checks</li>
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>Device additions, configuration, and integration</li>
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>Network testing and commissioning</li>
+            </ul>
+            <button class="service-book" type="button" data-service="NMEA 2000 networks">Book NMEA service <span aria-hidden="true">→</span></button>
+          </article>
+
+          <article class="service-card" id="starlink-service">
+            <div class="service-topline">
+              <span class="service-number">02</span>
+              <span class="service-symbol" aria-hidden="true">
+                <svg><use href="#icon-starlink"/></svg>
+              </span>
+            </div>
+            <h3>Starlink Systems</h3>
+            <p class="service-scope">Surveys, installation, and onboard-network setup.</p>
+            <ul class="service-list">
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>Mounting and cable-route survey</li>
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>Antenna, power, and router installation</li>
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>Onboard Wi-Fi setup and connection verification</li>
+            </ul>
+            <button class="service-book" type="button" data-service="Starlink systems">Book Starlink service <span aria-hidden="true">→</span></button>
+          </article>
+
+          <article class="service-card" id="radio-service">
+            <div class="service-topline">
+              <span class="service-number">03</span>
+              <span class="service-symbol" aria-hidden="true">
+                <svg><use href="#icon-radio"/></svg>
+              </span>
+            </div>
+            <h3>VHF Radio &amp; FCC Inspections</h3>
+            <p class="service-scope">VHF/DSC/AIS service and non-GMDSS compulsory radiotelephone inspections.</p>
+            <ul class="service-list">
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>VHF, DSC, and AIS installation or service</li>
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>Power, coax, antenna, and GPS/DSC checks</li>
+              <li><svg aria-hidden="true"><use href="#icon-check"/></svg>Inspection scope confirmed before scheduling</li>
+            </ul>
+            <button class="service-book" type="button" data-service="VHF radio service">Book radio service <span aria-hidden="true">→</span></button>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="qualifications" id="qualifications" aria-labelledby="qualifications-title">
+      <div class="shell qualifications-inner">
+        <div class="qualifications-heading">
+          <p class="eyebrow">Qualifications</p>
+          <h2 id="qualifications-title">Verified credentials</h2>
+        </div>
+        <div class="credential-grid">
+          <div class="credential"><span>NMEA</span><strong>Advanced NMEA 2000 Installer</strong></div>
+          <div class="credential"><span>NMEA</span><strong>Advanced Marine Electronics Installer</strong></div>
+          <div class="credential"><span>FCC</span><strong>General Radiotelephone Operator License</strong></div>
+          <div class="credential"><span>USCG</span><strong>100-Ton Master</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="booking section" id="book" aria-labelledby="booking-title">
+      <div class="shell booking-grid">
+        <div class="booking-copy" id="service-area">
+          <p class="eyebrow eyebrow-dark">Book service</p>
+          <h2 id="booking-title">Send one complete request</h2>
+          <p class="booking-intro">Mobile service is available in Key Largo, Tavernier, and Islamorada.</p>
+          <h3>Include these details</h3>
+          <ol class="intake-list">
+            <li><span>1</span>Boat location</li>
+            <li><span>2</span>Vessel make, model, and length</li>
+            <li><span>3</span>Service needed</li>
+            <li><span>4</span>Equipment make and model</li>
+            <li><span>5</span>Symptoms or installation request, plus clear photos</li>
+          </ol>
+          <div class="direct-contact">
+            <span>Call or text</span>
+            <a href="tel:+13053066391">305-306-6391</a>
           </div>
         </div>
 
-        <div class="system-stage" data-tilt>
-          <article class="system-panel is-active" id="panel-nmea" role="tabpanel" aria-labelledby="tab-nmea" data-system-panel="nmea">
-            <div class="panel-heading">
-              <div><p class="panel-code">SYSTEM / 01</p><h3>NMEA Networks</h3><p>Power, termination, topology and device traffic handled as one network.</p></div>
-              <a href="nmea-networks.html">Open service page <span aria-hidden="true">↗</span></a>
-            </div>
-            <figure class="visual-card visual-nmea" data-parallax>
-              <picture>
-                <source media="(max-width: 700px)" srcset="assets/renders/nmea-system-1200.webp">
-                <img src="assets/renders/nmea-system-2400.webp" alt="Futuristic NMEA 2000 reference topology with one linear backbone, two end terminators, T-connectors, short device drops and one protected power feed" width="2400" height="1200">
-              </picture>
-              <span class="visual-callout callout-left">120Ω end</span>
-              <span class="visual-callout callout-right">120Ω end</span>
-              <span class="visual-callout callout-power">One protected power feed</span>
-              <figcaption>Linear backbone · two terminators · short drops · one protected power insertion</figcaption>
-            </figure>
-          </article>
+        <form class="booking-form" data-booking-form>
+          <div class="form-heading">
+            <h3>Service request</h3>
+            <p>The button opens a prepared text message. Review it and press send.</p>
+          </div>
 
-          <article class="system-panel" id="panel-electronics" role="tabpanel" aria-labelledby="tab-electronics" data-system-panel="electronics" hidden>
-            <div class="panel-heading">
-              <div><p class="panel-code">SYSTEM / 02</p><h3>Marine Electronics</h3><p>Clean at the helm. Protected, serviceable and tested behind the panel.</p></div>
-              <a href="marine-electronics.html">Open service page <span aria-hidden="true">↗</span></a>
-            </div>
-            <figure class="visual-card visual-helm" data-parallax>
-              <picture>
-                <source media="(max-width: 700px)" srcset="assets/renders/helm-system-1200.webp">
-                <img src="assets/renders/helm-system-2400.webp" alt="Futuristic conceptual cutaway of an integrated marine helm with displays, radio controls and organized under-panel system architecture" width="2400" height="1200">
-              </picture>
-              <div class="helm-legend" aria-label="Installation priorities"><span>Protected power</span><span>Serviceable routing</span><span>System commissioning</span></div>
-              <figcaption>System architecture · fit · power · data · RF · commissioning</figcaption>
-            </figure>
-          </article>
+          <label for="service">Service</label>
+          <select id="service" name="service" required>
+            <option value="">Choose a service</option>
+            <option value="NMEA 2000 networks">NMEA 2000 networks</option>
+            <option value="Starlink systems">Starlink systems</option>
+            <option value="VHF radio service">VHF radio service</option>
+            <option value="FCC ship-radio inspection">FCC ship-radio inspection</option>
+          </select>
 
-          <article class="system-panel" id="panel-radio" role="tabpanel" aria-labelledby="tab-radio" data-system-panel="radio" hidden>
-            <div class="panel-heading">
-              <div><p class="panel-code">SYSTEM / 03</p><h3>Marine Radio + FCC</h3><p>VHF, DSC, AIS and the RF path—plus ship-radio inspections for covered vessels.</p></div>
-              <a href="marine-radio-fcc.html">Open service page <span aria-hidden="true">↗</span></a>
-            </div>
-            <div class="radio-visual visual-card" data-parallax>
-              <picture>
-                <source media="(max-width: 700px)" srcset="assets/renders/radio-unit-1200.webp">
-                <img src="assets/renders/radio-unit-2400.webp" alt="Futuristic conceptual marine VHF control-head visualization set to channel 16" width="2400" height="1256">
-              </picture>
-              <div class="rf-map" aria-label="Marine radio system path">
-                <div class="rf-inputs"><span>Protected 12 VDC</span><span>GPS position + MMSI</span></div>
-                <strong>VHF / DSC</strong>
-                <div class="rf-output"><span>50Ω coax</span><span>Antenna</span><span>On-air test</span></div>
-              </div>
-              <p class="radio-license"><span aria-hidden="true">✓</span> FCC-licensed GROL technician</p>
-            </div>
-          </article>
-        </div>
-      </div>
-    </section>
+          <label for="location">Boat location</label>
+          <input id="location" name="location" type="text" autocomplete="street-address" placeholder="Marina, city, or address" required>
 
-    <section class="service-steps shell" aria-labelledby="route-title">
-      <div class="section-intro compact" data-reveal>
-        <p class="eyebrow"><span></span> One disciplined route</p>
-        <h2 id="route-title">Trace the cause. Fix the system.</h2>
-      </div>
-      <ol>
-        <li data-reveal><span>01</span><strong>Survey</strong><p>Understand the boat, symptom, equipment and full signal path.</p></li>
-        <li data-reveal><span>02</span><strong>Measure</strong><p>Test power, network, configuration and RF conditions before blaming parts.</p></li>
-        <li data-reveal><span>03</span><strong>Correct</strong><p>Repair the actual fault or build the installation around the vessel.</p></li>
-        <li data-reveal><span>04</span><strong>Verify</strong><p>Commission the finished system and prove the requested functions.</p></li>
-      </ol>
-    </section>
+          <label for="vessel">Vessel and equipment</label>
+          <input id="vessel" name="vessel" type="text" placeholder="Boat make/model/length + equipment" required>
 
-    <section class="credential-section" aria-labelledby="credentials-title">
-      <div class="shell credential-inner">
-        <div data-reveal>
-          <p class="eyebrow light"><span></span> Qualified across the signal path</p>
-          <h2 id="credentials-title">Advanced installation.<br>Licensed radio work.</h2>
-        </div>
-        <img class="nmea-logo" src="assets/credentials/nmea.jpg" alt="National Marine Electronics Association" width="864" height="800" loading="lazy" data-reveal>
-        <ul data-reveal>
-          <li>Advanced Marine Electronics Installer</li>
-          <li>Advanced NMEA 2000 Installer</li>
-          <li>FCC General Radiotelephone Operator License</li>
-          <li>USCG 100-Ton Master</li>
-        </ul>
-      </div>
-    </section>
+          <label for="date">Preferred service date <span>(optional)</span></label>
+          <input id="date" name="date" type="date">
 
-    <section class="contact-section shell" id="contact" aria-labelledby="contact-title">
-      <div data-reveal>
-        <p class="eyebrow"><span></span> Key Largo · Tavernier · Islamorada</p>
-        <h2 id="contact-title">Show us the system.</h2>
-        <p>Text the boat location, equipment, symptoms and clear photos. The person who answers is the person who works on the boat.</p>
-      </div>
-      <div class="contact-actions" data-reveal>
-        <a class="button button-dark track" href="sms:+13053066391?body=Hi%20Zenith%2C%20I%20need%20help%20with%20my%20boat%27s%20electronics.%20Boat%20location%3A%20" data-event="contact_text">Text boat photos <span aria-hidden="true">↗</span></a>
-        <a class="phone-link track" href="tel:+13053066391" data-event="contact_call">305-306-6391</a>
+          <label for="details">What do you need?</label>
+          <textarea id="details" name="details" rows="5" placeholder="Describe the symptom or installation. Mention when it started and what changed." required></textarea>
+
+          <button class="button form-submit" type="submit">Create booking text</button>
+          <p class="form-status" data-form-status aria-live="polite"></p>
+          <noscript><p>JavaScript is required to prepare the booking text. Call or text <a href="sms:+13053066391">305-306-6391</a>.</p></noscript>
+        </form>
       </div>
     </section>
   </main>
 
   <footer class="site-footer">
     <div class="shell footer-inner">
-      <img src="assets/brand/zenith-wordmark.webp" alt="Zenith Marine Electronics" width="900" height="259">
-      <p>Mobile marine electronics · Upper Florida Keys</p>
-      <p>© <span data-year></span> Zenith Marine Electronics</p>
+      <div>
+        <strong>Zenith Marine Electronics</strong>
+        <span>Mobile service · Upper Florida Keys</span>
+      </div>
+      <div class="footer-actions">
+        <a href="tel:+13053066391">Call 305-306-6391</a>
+        <a href="sms:+13053066391">Text Zenith</a>
+      </div>
+      <small>© <span data-year></span> Zenith Marine Electronics</small>
     </div>
   </footer>
 
-  <script src="script.js?v=6" defer></script>
+  <script src="app.js?v=20260816" defer></script>
 </body>
 </html>
