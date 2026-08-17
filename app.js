@@ -13,6 +13,42 @@
   let animationFrame = 0;
   let currentProgress = 0;
 
+  const cleanTrackingToken = (value) => String(value || "")
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 48);
+
+  const readAttribution = () => {
+    const params = new URLSearchParams(window.location.search);
+    const taggedSource = cleanTrackingToken(params.get("utm_source"));
+    const medium = cleanTrackingToken(params.get("utm_medium"));
+    const campaign = cleanTrackingToken(params.get("utm_campaign"));
+    const partner = cleanTrackingToken(params.get("ref") || params.get("utm_content"));
+    let referrer = "";
+
+    if (!taggedSource && document.referrer) {
+      try {
+        const referrerHost = new URL(document.referrer).hostname.replace(/^www\./, "");
+        if (referrerHost && referrerHost !== window.location.hostname) {
+          referrer = cleanTrackingToken(referrerHost);
+        }
+      } catch (_) {
+        referrer = "";
+      }
+    }
+
+    return {
+      source: taggedSource || referrer || partner || "direct",
+      medium,
+      campaign,
+      partner: partner && partner !== taggedSource ? partner : "",
+    };
+  };
+
+  const attribution = readAttribution();
+
   const clamp = (value, minimum = 0, maximum = 1) => Math.min(maximum, Math.max(minimum, value));
 
   const setHeaderState = () => {
@@ -66,19 +102,29 @@
     if (!animationFrame) animationFrame = window.requestAnimationFrame(updateFrame);
   };
 
-  const buildMessage = ({ service, location, vessel, date, details }) => [
-    "Zenith service request",
-    `Service: ${service}`,
-    `Boat location: ${location}`,
-    `Vessel / equipment: ${vessel}`,
-    `Preferred date: ${date || "Flexible"}`,
-    `Request: ${details}`,
-    "I can send clear photos.",
-  ].join("\n");
+  const buildMessage = ({ service, location, vessel, date, details, attribution: messageAttribution }) => {
+    const tracking = messageAttribution || attribution;
+    const trackingLabel = [tracking.source, tracking.medium, tracking.campaign, tracking.partner].filter(Boolean).join(" / ");
+
+    return [
+      "Zenith service request",
+      `Service: ${service}`,
+      `Boat location: ${location}`,
+      `Vessel / equipment: ${vessel}`,
+      `Preferred date: ${date || "Flexible"}`,
+      `Request: ${details}`,
+      "I can send clear photos.",
+      `Lead source: ${trackingLabel || "direct"}`,
+    ].join("\n");
+  };
 
   const buildHref = (data) => `sms:${PHONE}?body=${encodeURIComponent(buildMessage(data))}`;
 
-  window.ZenithBooking = { buildMessage, buildHref };
+  window.ZenithBooking = {
+    buildMessage,
+    buildHref,
+    attribution: () => ({ ...attribution }),
+  };
   window.ZenithMorph = {
     render: renderMorph,
     update: updateMorph,

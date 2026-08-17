@@ -10,7 +10,7 @@ import socket
 import threading
 from html.parser import HTMLParser
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import unquote, urlsplit
 
 from axe_playwright_python.sync_playwright import Axe
 from playwright.sync_api import sync_playwright
@@ -138,7 +138,10 @@ def run() -> int:
                     else None,
                 )
                 page.on("pageerror", lambda exc, bucket=browser_errors: bucket.append(f"pageerror:{exc}"))
-                response = page.goto(f"{base_url}/", wait_until="networkidle")
+                response = page.goto(
+                    f"{base_url}/?utm_source=qa&utm_medium=test&utm_campaign=launch&ref=qa-partner",
+                    wait_until="networkidle",
+                )
                 page.evaluate("document.fonts.ready")
                 page.add_style_tag(content="html{scroll-behavior:auto!important}")
                 page.wait_for_timeout(80)
@@ -167,6 +170,7 @@ def run() -> int:
                 booking_href = page.evaluate(
                     "window.ZenithBooking.buildHref({service:'NMEA 2000 networks',location:'Tavernier',vessel:'Test vessel / test equipment',date:'',details:'Intermittent data'})"
                 )
+                attribution = page.evaluate("window.ZenithBooking.attribution()")
 
                 morph_states = page.evaluate(
                     """() => {
@@ -256,6 +260,11 @@ def run() -> int:
                     browser_errors.append(f"Service preselection failed: {selected_service!r}")
                 if not booking_href.startswith(f"sms:{PHONE}?body=") or "NMEA%202000%20networks" not in booking_href:
                     browser_errors.append(f"Booking SMS builder failed: {booking_href!r}")
+                booking_text = unquote(booking_href.split("?body=", 1)[1]) if "?body=" in booking_href else ""
+                if "Lead source: qa / test / launch / qa-partner" not in booking_text:
+                    browser_errors.append(f"Booking attribution failed: {booking_text!r}")
+                if attribution != {"source": "qa", "medium": "test", "campaign": "launch", "partner": "qa-partner"}:
+                    browser_errors.append(f"URL attribution parse failed: {attribution!r}")
                 if morph_states["blueprint"]["reveal"] != "0.00%":
                     browser_errors.append(f"Blueprint state failed: {morph_states}")
                 if morph_states["middle"]["reveal"] != "50.00%":

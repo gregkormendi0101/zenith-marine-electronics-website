@@ -12,7 +12,7 @@ Static one-page Service First website for Zenith Marine Electronics in the Upper
 
 - `index.html` — factual offer, three service lanes, qualifications, and booking intake
 - `styles.css` — responsive visual system and reduced-motion behavior
-- `app.js` — reversible blueprint-to-vessel scroll morph and prepared-SMS booking
+- `app.js` — reversible blueprint-to-vessel scroll morph, prepared-SMS booking, and privacy-safe UTM/referrer attribution embedded in the lead text
 - `assets/hero-blueprint*.svg` — pure-vector, text-free vessel drawings
 - `assets/hero-yacht*.webp` — aligned desktop/mobile vessel images
 - `assets/images/social.webp` — 1200×630 social preview
@@ -33,6 +33,8 @@ uv run --with playwright --with axe-playwright-python python qa_responsive.py
 ```
 
 `validate_site.py` checks metadata, structured data, domain files, references, public wording, privacy limits, service architecture, blueprint purity, and the production asset budget. `qa_responsive.py` tests responsive rendering, accessibility, booking behavior, and the reversible hero interaction.
+
+Campaign links may use `utm_source`, `utm_medium`, `utm_campaign`, and `ref`/`utm_content` for a specific partner or placement. The booking text carries only normalized attribution tokens (or the external referrer hostname), never a full browsing URL.
 
 ## Deployment
 
