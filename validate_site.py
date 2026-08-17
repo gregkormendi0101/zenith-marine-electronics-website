@@ -14,6 +14,11 @@ CANONICAL = "https://zenithmarineelectronics.com/"
 PHONE = "+13053066391"
 MEASUREMENT_ID = "G-H8KGT9K2TM"
 MAX_ASSET_BYTES = 400 * 1024
+SERVICE_PAGES = {
+    "nmea-2000-troubleshooting-upper-florida-keys.html": "NMEA 2000 troubleshooting",
+    "marine-starlink-installation-upper-florida-keys.html": "Marine Starlink installation",
+    "vhf-dsc-ais-service-upper-florida-keys.html": "Marine VHF, DSC and AIS service",
+}
 errors: list[str] = []
 
 
@@ -107,6 +112,53 @@ for marker in (
     check(marker in script, f"app.js missing behavior marker: {marker}")
 check("generate_lead" not in script, "click instrumentation must not claim a confirmed lead")
 
+for filename, expected_h1 in SERVICE_PAGES.items():
+    path = ROOT / filename
+    check(path.exists(), f"missing service landing page: {filename}")
+    check(f'href="{filename}"' in source, f"home page does not link service page: {filename}")
+    if not path.exists():
+        continue
+
+    service_source = path.read_text(encoding="utf-8")
+    service_soup = BeautifulSoup(service_source, "html.parser")
+    service_h1 = service_soup.find_all("h1")
+    check(len(service_h1) == 1, f"{filename}: expected exactly one h1")
+    if service_h1:
+        check(expected_h1.lower() in service_h1[0].get_text(" ", strip=True).lower(), f"{filename}: incorrect h1")
+    check(bool(service_soup.find("meta", attrs={"name": "description", "content": True})), f"{filename}: missing meta description")
+    service_canonical = service_soup.find("link", rel="canonical")
+    check(bool(service_canonical and service_canonical.get("href") == f"{CANONICAL}{filename}"), f"{filename}: incorrect canonical")
+    check(f"googletagmanager.com/gtag/js?id={MEASUREMENT_ID}" in service_source, f"{filename}: missing GA4 loader")
+    check(bool(service_soup.select_one("form[data-booking-form]")), f"{filename}: missing request form")
+    check(bool(service_soup.select_one("#service option[selected]")), f"{filename}: service is not preselected")
+    check(len(service_soup.select(f'a[href="tel:{PHONE}"]')) >= 3, f"{filename}: telephone actions missing")
+    check(bool(service_soup.select_one(f'a[href="sms:{PHONE}"]')), f"{filename}: SMS fallback missing")
+    check(bool(service_soup.select_one('link[href^="service-pages.css"]')), f"{filename}: service CSS missing")
+
+    for tag in service_soup.find_all(["a", "img", "link", "script", "source"]):
+        for attr in ("href", "src", "srcset"):
+            raw = tag.get(attr)
+            if not raw:
+                continue
+            candidates = [part.strip().split(" ")[0] for part in raw.split(",")] if attr == "srcset" else [raw]
+            for candidate in candidates:
+                target = local_target(candidate)
+                check(target is None or target.exists(), f"{filename}: broken local reference: {candidate}")
+
+    service_schemas = service_soup.find_all("script", attrs={"type": "application/ld+json"})
+    check(len(service_schemas) == 1, f"{filename}: expected one JSON-LD block")
+    for block in service_schemas:
+        try:
+            data = json.loads(block.string or block.get_text())
+            types = {item.get("@type") for item in data.get("@graph", []) if isinstance(item, dict)}
+            check({"Service", "FAQPage"}.issubset(types), f"{filename}: JSON-LD lacks Service or FAQPage")
+        except Exception as exc:
+            errors.append(f"{filename}: invalid JSON-LD: {exc}")
+
+    service_lowered = service_source.lower()
+    for forbidden in ("92157 overseas", "3324 deer creek", "4251 nw 5th", "pg00081279", "#8033", "#6332", "fcc inspector", "fully insured"):
+        check(forbidden not in service_lowered, f"{filename}: private or unapproved wording found: {forbidden}")
+
 privacy_path = ROOT / "privacy.html"
 check(privacy_path.exists(), "missing privacy.html")
 if privacy_path.exists():
@@ -125,6 +177,8 @@ check((ROOT / "CNAME").read_text(encoding="utf-8").strip() == "zenithmarineelect
 sitemap = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
 check(CANONICAL in sitemap, "sitemap lacks canonical URL")
 check(f"{CANONICAL}privacy.html" in sitemap, "sitemap lacks privacy URL")
+for filename in SERVICE_PAGES:
+    check(f"{CANONICAL}{filename}" in sitemap, f"sitemap lacks service page: {filename}")
 check("Sitemap: https://zenithmarineelectronics.com/sitemap.xml" in (ROOT / "robots.txt").read_text(encoding="utf-8"), "robots.txt lacks sitemap")
 check((ROOT / "assets/images/social.webp").exists(), "social image is missing")
 

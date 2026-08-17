@@ -596,6 +596,23 @@ h3 {
   transform: translateX(4px);
 }
 
+.service-learn {
+  display: inline-block;
+  align-self: flex-start;
+  margin-top: 12px;
+  color: var(--teal);
+  font-size: 0.92rem;
+  font-weight: 760;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+
+.service-learn:hover,
+.service-learn:focus-visible {
+  color: var(--navy-2);
+}
+
 /* Qualifications */
 .qualifications {
   position: relative;
