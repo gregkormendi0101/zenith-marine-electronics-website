@@ -16,6 +16,8 @@ Static one-page Service First website for Zenith Marine Electronics in the Upper
 - `service-pages.css` — shared landing-page layout and responsive treatment
 - `app.js` — reversible blueprint-to-vessel scroll morph, prepared-SMS booking, privacy-safe UTM/referrer attribution, and GA4 interaction events
 - `build_service_pages.py` — deterministic source for regenerating all three landing pages
+- `submit_indexnow.py` — validates the sitemap and submits its current URLs to IndexNow after meaningful deployments
+- `<indexnow-key>.txt` — root ownership file required by IndexNow
 - `privacy.html` — plain-language analytics, attribution, and SMS disclosure
 - `assets/hero-blueprint*.svg` — pure-vector, text-free vessel drawings
 - `assets/hero-yacht*.webp` — aligned desktop/mobile vessel images
@@ -48,6 +50,15 @@ ZENITH_QA_URL=https://zenithmarineelectronics.com uv run --with playwright --wit
 Campaign links may use `utm_source`, `utm_medium`, `utm_campaign`, and `ref`/`utm_content` for a specific partner or placement. The booking text carries only normalized attribution tokens (or the external referrer hostname), never a full browsing URL.
 
 GA4 measurement ID `G-H8KGT9K2TM` records `service_select`, `sms_open`, and `call_click`. A click is not treated as a confirmed lead; `generate_lead` is intentionally reserved for a real inquiry logged after receipt.
+
+After a meaningful content deployment and public key-file verification:
+
+```bash
+python3 submit_indexnow.py --dry-run
+python3 submit_indexnow.py
+```
+
+Do not resubmit unchanged URLs repeatedly; IndexNow is a change notification, not a traffic bot.
 
 ## Deployment
 
