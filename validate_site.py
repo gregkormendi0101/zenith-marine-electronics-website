@@ -12,6 +12,7 @@ from bs4 import BeautifulSoup
 ROOT = Path(__file__).resolve().parent
 CANONICAL = "https://zenithmarineelectronics.com/"
 PHONE = "+13053066391"
+MEASUREMENT_ID = "G-H8KGT9K2TM"
 MAX_ASSET_BYTES = 400 * 1024
 errors: list[str] = []
 
@@ -77,6 +78,9 @@ check(all(term in (soup.find("h1").get_text(" ") if soup.find("h1") else "") for
 check(len(soup.select(f'a[href="tel:{PHONE}"]')) >= 3, "telephone actions are missing or inconsistent")
 check(len(soup.select(f'a[href="sms:{PHONE}"]')) >= 1, "SMS fallback is missing or inconsistent")
 check(not soup.select(".morph-status, .morph-instruction"), "hero-state labels remain")
+check(bool(soup.select_one('a[href="privacy.html"]')), "privacy policy is not linked from the footer")
+check(f"googletagmanager.com/gtag/js?id={MEASUREMENT_ID}" in source, "GA4 loader is missing or incorrect")
+check(source.count(MEASUREMENT_ID) >= 2, "GA4 measurement ID is not configured")
 
 lowered = source.lower()
 for forbidden in ("black swan marine", "92157 overseas", "3324 deer creek", "4251 nw 5th", "pg00081279", "#8033", "#6332", "fcc inspector", "fully insured"):
@@ -91,8 +95,25 @@ for raw in re.findall(r'url\(["\']?([^"\')]+)', css):
 check("prefers-reduced-motion" in css, "missing reduced-motion support")
 
 script = (ROOT / "app.js").read_text(encoding="utf-8")
-for marker in ("window.ZenithBooking", "window.ZenithMorph", "requestAnimationFrame"):
+for marker in (
+    "window.ZenithBooking",
+    "window.ZenithMorph",
+    "window.ZenithAnalytics",
+    "requestAnimationFrame",
+    'trackEvent("service_select"',
+    'trackEvent("sms_open"',
+    'trackEvent("call_click"',
+):
     check(marker in script, f"app.js missing behavior marker: {marker}")
+check("generate_lead" not in script, "click instrumentation must not claim a confirmed lead")
+
+privacy_path = ROOT / "privacy.html"
+check(privacy_path.exists(), "missing privacy.html")
+if privacy_path.exists():
+    privacy_source = privacy_path.read_text(encoding="utf-8")
+    privacy_text = BeautifulSoup(privacy_source, "html.parser").get_text(" ", strip=True)
+    for phrase in ("Google Analytics", "prepared text message", "campaign attribution", "305-306-6391"):
+        check(phrase in privacy_text, f"privacy policy missing disclosure: {phrase}")
 
 for blueprint_name in ("hero-blueprint.svg", "hero-blueprint-mobile.svg"):
     blueprint = (ROOT / "assets" / blueprint_name).read_text(encoding="utf-8")
@@ -101,7 +122,9 @@ for blueprint_name in ("hero-blueprint.svg", "hero-blueprint-mobile.svg"):
     check(blueprint.count("<path") >= 20, f"{blueprint_name} lacks drafted linework")
 
 check((ROOT / "CNAME").read_text(encoding="utf-8").strip() == "zenithmarineelectronics.com", "CNAME is wrong")
-check(CANONICAL in (ROOT / "sitemap.xml").read_text(encoding="utf-8"), "sitemap lacks canonical URL")
+sitemap = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
+check(CANONICAL in sitemap, "sitemap lacks canonical URL")
+check(f"{CANONICAL}privacy.html" in sitemap, "sitemap lacks privacy URL")
 check("Sitemap: https://zenithmarineelectronics.com/sitemap.xml" in (ROOT / "robots.txt").read_text(encoding="utf-8"), "robots.txt lacks sitemap")
 check((ROOT / "assets/images/social.webp").exists(), "social image is missing")
 
@@ -119,4 +142,5 @@ print("VALIDATION PASSED")
 print("- one-page Service First production build")
 print("- metadata, JSON-LD, canonical, sitemap, robots, and CNAME: pass")
 print("- public wording, privacy limits, local references, and asset budget: pass")
+print("- GA4 loader/events and privacy disclosure: pass")
 print("- vector blueprint, three service lanes, booking actions, and reduced motion: pass")

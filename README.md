@@ -12,7 +12,8 @@ Static one-page Service First website for Zenith Marine Electronics in the Upper
 
 - `index.html` — factual offer, three service lanes, qualifications, and booking intake
 - `styles.css` — responsive visual system and reduced-motion behavior
-- `app.js` — reversible blueprint-to-vessel scroll morph, prepared-SMS booking, and privacy-safe UTM/referrer attribution embedded in the lead text
+- `app.js` — reversible blueprint-to-vessel scroll morph, prepared-SMS booking, privacy-safe UTM/referrer attribution, and GA4 interaction events
+- `privacy.html` — plain-language analytics, attribution, and SMS disclosure
 - `assets/hero-blueprint*.svg` — pure-vector, text-free vessel drawings
 - `assets/hero-yacht*.webp` — aligned desktop/mobile vessel images
 - `assets/images/social.webp` — 1200×630 social preview
@@ -32,9 +33,11 @@ uv run --with beautifulsoup4 python validate_site.py
 uv run --with playwright --with axe-playwright-python python qa_responsive.py
 ```
 
-`validate_site.py` checks metadata, structured data, domain files, references, public wording, privacy limits, service architecture, blueprint purity, and the production asset budget. `qa_responsive.py` tests responsive rendering, accessibility, booking behavior, and the reversible hero interaction.
+`validate_site.py` checks metadata, structured data, domain files, references, public wording, privacy limits, GA4 instrumentation, service architecture, blueprint purity, and the production asset budget. `qa_responsive.py` tests responsive rendering, accessibility, booking behavior, GA4 interaction hooks, and the reversible hero interaction.
 
 Campaign links may use `utm_source`, `utm_medium`, `utm_campaign`, and `ref`/`utm_content` for a specific partner or placement. The booking text carries only normalized attribution tokens (or the external referrer hostname), never a full browsing URL.
+
+GA4 measurement ID `G-H8KGT9K2TM` records `service_select`, `sms_open`, and `call_click`. A click is not treated as a confirmed lead; `generate_lead` is intentionally reserved for a real inquiry logged after receipt.
 
 ## Deployment
 

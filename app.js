@@ -49,6 +49,12 @@
 
   const attribution = readAttribution();
 
+  const trackEvent = (name, parameters = {}) => {
+    if (typeof window.gtag !== "function") return false;
+    window.gtag("event", name, parameters);
+    return true;
+  };
+
   const clamp = (value, minimum = 0, maximum = 1) => Math.min(maximum, Math.max(minimum, value));
 
   const setHeaderState = () => {
@@ -130,11 +136,16 @@
     update: updateMorph,
     progress: () => currentProgress,
   };
+  window.ZenithAnalytics = {
+    trackEvent,
+  };
 
   document.querySelectorAll("[data-service]").forEach((button) => {
     button.addEventListener("click", () => {
+      const serviceName = button.dataset.service || "";
+      trackEvent("service_select", { service_name: serviceName });
       if (serviceSelect) {
-        serviceSelect.value = button.dataset.service || "";
+        serviceSelect.value = serviceName;
       }
       document.querySelector("#book")?.scrollIntoView({ behavior: "smooth", block: "start" });
       window.setTimeout(() => serviceSelect?.focus({ preventScroll: true }), 450);
@@ -150,8 +161,30 @@
     }
 
     const data = Object.fromEntries(new FormData(form).entries());
+    trackEvent("sms_open", {
+      service_name: String(data.service || ""),
+      lead_source: attribution.source,
+    });
     status.textContent = "Opening your prepared text message…";
     window.location.href = buildHref(data);
+  });
+
+  document.querySelectorAll('a[href^="tel:"]').forEach((link) => {
+    link.addEventListener("click", () => {
+      trackEvent("call_click", {
+        link_text: link.textContent.trim(),
+        lead_source: attribution.source,
+      });
+    });
+  });
+
+  document.querySelectorAll('a[href^="sms:"]').forEach((link) => {
+    link.addEventListener("click", () => {
+      trackEvent("sms_open", {
+        service_name: "direct_text",
+        lead_source: attribution.source,
+      });
+    });
   });
 
   document.querySelectorAll("[data-year]").forEach((node) => {

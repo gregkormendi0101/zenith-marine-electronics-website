@@ -24,6 +24,7 @@ VIEWPORTS = {
     "desktop-1440": (1440, 1100),
 }
 PHONE = "+13053066391"
+MEASUREMENT_ID = "G-H8KGT9K2TM"
 
 
 class Refs(HTMLParser):
@@ -85,6 +86,17 @@ def validate_source() -> list[str]:
         errors.append("Booking helper is not exposed for deterministic QA")
     if "window.ZenithMorph" not in js:
         errors.append("Morph helper is not exposed for deterministic QA")
+    if "window.ZenithAnalytics" not in js:
+        errors.append("Analytics helper is not exposed for deterministic QA")
+    for event_name in ("service_select", "sms_open", "call_click"):
+        if f'trackEvent("{event_name}"' not in js:
+            errors.append(f"Analytics event is missing: {event_name}")
+    if "generate_lead" in js:
+        errors.append("Click instrumentation must not claim a confirmed lead")
+    if f"googletagmanager.com/gtag/js?id={MEASUREMENT_ID}" not in html:
+        errors.append("GA4 loader is missing or incorrect")
+    if not (ROOT / "privacy.html").is_file() or 'href="privacy.html"' not in html:
+        errors.append("Privacy policy is missing or unlinked")
 
     for blueprint_name in ("hero-blueprint.svg", "hero-blueprint-mobile.svg"):
         blueprint = (ROOT / "assets" / blueprint_name).read_text(encoding="utf-8")
@@ -128,6 +140,13 @@ def run() -> int:
                     viewport={"width": width, "height": height},
                     device_scale_factor=1,
                     reduced_motion="no-preference",
+                )
+                context.route(
+                    "https://www.googletagmanager.com/**",
+                    lambda route: route.fulfill(status=204, body=""),
+                )
+                context.add_init_script(
+                    "window.__qaEvents = []; window.gtag = (...args) => window.__qaEvents.push(args);"
                 )
                 page = context.new_page()
                 browser_errors: list[str] = []
@@ -216,6 +235,26 @@ def run() -> int:
                 first_service_button.click()
                 page.wait_for_timeout(30)
                 selected_service = page.locator("#service").input_value()
+                page.locator('a[href^="tel:"]').first.evaluate(
+                    """el => {
+                      el.addEventListener('click', event => event.preventDefault(), {once: true});
+                      el.click();
+                    }"""
+                )
+                page.locator('a[href^="sms:"]').first.evaluate(
+                    """el => {
+                      el.addEventListener('click', event => event.preventDefault(), {once: true});
+                      el.click();
+                    }"""
+                )
+                analytics_events = page.evaluate(
+                    "window.__qaEvents.filter(event => event[0] === 'event')"
+                )
+                analytics_by_name = {
+                    event[1]: event[2]
+                    for event in analytics_events
+                    if len(event) >= 3
+                }
                 page.evaluate("window.scrollTo(0, 0)")
                 page.wait_for_timeout(80)
 
@@ -265,6 +304,12 @@ def run() -> int:
                     browser_errors.append(f"Booking attribution failed: {booking_text!r}")
                 if attribution != {"source": "qa", "medium": "test", "campaign": "launch", "partner": "qa-partner"}:
                     browser_errors.append(f"URL attribution parse failed: {attribution!r}")
+                if analytics_by_name.get("service_select") != {"service_name": "NMEA 2000 networks"}:
+                    browser_errors.append(f"service_select analytics failed: {analytics_events!r}")
+                if analytics_by_name.get("call_click", {}).get("lead_source") != "qa":
+                    browser_errors.append(f"call_click analytics failed: {analytics_events!r}")
+                if analytics_by_name.get("sms_open") != {"service_name": "direct_text", "lead_source": "qa"}:
+                    browser_errors.append(f"sms_open analytics failed: {analytics_events!r}")
                 if morph_states["blueprint"]["reveal"] != "0.00%":
                     browser_errors.append(f"Blueprint state failed: {morph_states}")
                 if morph_states["middle"]["reveal"] != "50.00%":
@@ -310,6 +355,7 @@ def run() -> int:
                     "telephone_actions": tel_count,
                     "service_preselection": selected_service,
                     "booking_sms": booking_href,
+                    "analytics_events": analytics_events,
                     "skip_link_focus": skip_visible,
                     "axe_violations": axe_violations,
                     "errors": browser_errors,
@@ -349,6 +395,10 @@ def run() -> int:
                     viewport={"width": width, "height": height},
                     device_scale_factor=1,
                     reduced_motion="reduce",
+                )
+                context.route(
+                    "https://www.googletagmanager.com/**",
+                    lambda route: route.fulfill(status=204, body=""),
                 )
                 page = context.new_page()
                 page.goto(f"{base_url}/", wait_until="networkidle")
@@ -415,7 +465,7 @@ def run() -> int:
         "- Complete first-view offer: NMEA, Starlink, VHF, and FCC",
         "- Pure-vector, text-free blueprint/photo layers and deterministic 0/50/100/reverse states",
         "- Real scroll-linked forward and reverse progression",
-        "- Working service preselection and deterministic booking-SMS builder",
+        "- Working service preselection, deterministic booking-SMS builder, and GA4 event hooks",
         "- Image loading and interactive accessible names",
         "- Telephone/SMS targets and skip-link focus",
         "- Axe accessibility audit and reduced-motion static fallback",
