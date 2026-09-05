@@ -244,11 +244,11 @@ def render(page: dict) -> str:
   <meta property="og:title" content="{esc(page['title'])}">
   <meta property="og:description" content="{esc(page['description'])}">
   <meta property="og:url" content="{esc(canonical)}">
-  <meta property="og:image" content="{BASE}assets/images/social.webp">
+  <meta property="og:image" content="{BASE}assets/images/harbor-social.webp">
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:title" content="{esc(page['title'])}">
   <meta name="twitter:description" content="{esc(page['description'])}">
-  <meta name="twitter:image" content="{BASE}assets/images/social.webp">
+  <meta name="twitter:image" content="{BASE}assets/images/harbor-social.webp">
   <title>{esc(page['title'])} | Zenith Marine Electronics</title>
   <link rel="canonical" href="{esc(canonical)}">
   <link rel="icon" href="assets/brand/favicon.png" type="image/png">

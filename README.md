@@ -1,65 +1,38 @@
 # Zenith Marine Electronics — production site
 
-Static one-page Service First website for Zenith Marine Electronics in the Upper Florida Keys.
+Approved **Harbor** homepage with three retained high-intent service landing pages. Static GitHub Pages site at https://zenithmarineelectronics.com/.
 
-## Offer
+## Runtime
+- `index.html`, `harbor.css`, `harbor.js`: concise homepage, three expandable service lanes, qualifications, operator/process information and a locally prepared SMS request.
+- `*-upper-florida-keys.html`: existing NMEA troubleshooting, Starlink installation and VHF/DSC/AIS landing pages. Preserve these URLs for organic search and existing campaign links.
+- `styles.css`, `service-pages.css`, `app.js`: retained landing-page/privacy dependencies. Old hero assets remain available for compatibility; the new homepage does not load them or the old morph runtime.
+- `build_service_pages.py`: deterministic source for the service pages.
+- `privacy.html`: analytics, bounded attribution and text-message disclosure.
+- `assets/images/harbor-social.webp`: verified 1200×630 social card for the new design.
+- Canonical logo/favicon, `CNAME`, `.nojekyll`, robots/sitemap and IndexNow ownership file retained.
 
-- NMEA 2000 network diagnostics, additions, integration, and commissioning
-- Marine Starlink surveys, installation, onboard networking, and verification
-- VHF/DSC/AIS service and non-GMDSS ship-radio inspection inquiries
+## Contact and measurement
+The homepage drafts an SMS locally, then provides an explicit Open in Messages action. No request is sent automatically and no appointment is confirmed. The builder is disabled without JavaScript; direct SMS and telephone fallbacks remain. Changed inputs invalidate the draft; required fields reject whitespace-only values.
 
-## Architecture
+The existing GA4 stream records `service_select`, `sms_open` and `call_click`. Preparing a draft is **not** an SMS-open event or a confirmed lead. Typed location, vessel and request details are never supplied to custom analytics events. `generate_lead` is reserved for a real received inquiry.
 
-- `index.html` — factual offer, three service lanes, qualifications, and booking intake
-- `*-upper-florida-keys.html` — three high-intent service landing pages with preselected inquiry paths
-- `styles.css` — responsive visual system and reduced-motion behavior
-- `service-pages.css` — shared landing-page layout and responsive treatment
-- `app.js` — reversible blueprint-to-vessel scroll morph, prepared-SMS booking, privacy-safe UTM/referrer attribution, and GA4 interaction events
-- `build_service_pages.py` — deterministic source for regenerating all three landing pages
-- `submit_indexnow.py` — validates the sitemap and submits its current URLs to IndexNow after meaningful deployments
-- `<indexnow-key>.txt` — root ownership file required by IndexNow
-- `privacy.html` — plain-language analytics, attribution, and SMS disclosure
-- `assets/hero-blueprint*.svg` — pure-vector, text-free vessel drawings
-- `assets/hero-yacht*.webp` — aligned desktop/mobile vessel images
-- `assets/images/social.webp` — 1200×630 social preview
+Campaign attribution uses bounded normalized `utm_source`, `utm_medium`, `utm_campaign`, `ref`/`utm_content` tokens. It is preserved in prepared SMS and homepage-to-service-page navigation; arbitrary URL parameters and full browsing URLs are not propagated into those links/messages.
 
-## Preview
-
-```bash
-python3 -m http.server 4173 --bind 127.0.0.1
-```
-
-Open `http://127.0.0.1:4173/`.
+Legacy homepage anchors (`#book`, `#qualifications`, `#service-area` and the three service IDs) are retained.
 
 ## Validation
-
 ```bash
-uv run --with beautifulsoup4 python validate_site.py
-uv run --with playwright --with axe-playwright-python python qa_responsive.py
-uv run --with playwright --with axe-playwright-python python qa_service_pages.py
+uv run --with beautifulsoup4 --with playwright==1.62.0 --with axe-playwright-python python validate_site.py
+uv run --with beautifulsoup4 --with playwright==1.62.0 --with axe-playwright-python python qa_responsive.py
+uv run --with beautifulsoup4 --with playwright==1.62.0 --with axe-playwright-python python qa_service_pages.py
 ```
+The same browser checks run on production with `ZENITH_QA_URL=https://zenithmarineelectronics.com`. QA intercepts analytics transport and prevents actual calls/texts; it checks event hooks, not GA dashboard ingestion. Generated evidence is ignored under `.qa-artifacts/`.
 
-`validate_site.py` checks metadata, structured data, domain files, references, public wording, privacy limits, GA4 instrumentation, service architecture, blueprint purity, and the production asset budget. `qa_responsive.py` tests the home page. `qa_service_pages.py` tests every landing page at mobile and desktop widths, including accessibility, attribution, preselected booking, SMS construction, call-event instrumentation, broken images, console errors, and overflow.
+The homepage suite checks six widths, twelve collapsed/expanded accessibility states, all service selectors, keyboard flow, metadata/anchors/assets, SMS draft/encoding/attribution, no-JS behavior, iPhone SMS URI syntax and reduced motion. Service-page QA checks three retained pages at desktop/mobile sizes.
 
-Run the service-page suite against production after deployment:
+## Deployment and rollback
+GitHub Pages publishes `main` from the repository root. Squarespace manages DNS; no DNS changes are required for a redesign. Push normally, wait for successful Pages deployment and verify the served homepage plus every retained landing page. Keep QA captures and project/private evidence out of the commit.
 
-```bash
-ZENITH_QA_URL=https://zenithmarineelectronics.com uv run --with playwright --with axe-playwright-python python qa_service_pages.py
-```
+Rollback: revert the Harbor release commit with a new Git commit and push normally. Never force-push deployment history.
 
-Campaign links may use `utm_source`, `utm_medium`, `utm_campaign`, and `ref`/`utm_content` for a specific partner or placement. The booking text carries only normalized attribution tokens (or the external referrer hostname), never a full browsing URL.
-
-GA4 measurement ID `G-H8KGT9K2TM` records `service_select`, `sms_open`, and `call_click`. A click is not treated as a confirmed lead; `generate_lead` is intentionally reserved for a real inquiry logged after receipt.
-
-After a meaningful content deployment and public key-file verification:
-
-```bash
-python3 submit_indexnow.py --dry-run
-python3 submit_indexnow.py
-```
-
-Do not resubmit unchanged URLs repeatedly; IndexNow is a change notification, not a traffic bot.
-
-## Deployment
-
-GitHub Pages deploys `main` to `https://zenithmarineelectronics.com/`. Squarespace manages DNS. `CNAME`, canonical metadata, sitemap, robots, and HTTPS are production requirements.
+After a meaningful verified release, `python submit_indexnow.py --dry-run` validates current URLs; `python submit_indexnow.py` notifies IndexNow. Do not repeatedly resubmit unchanged content.

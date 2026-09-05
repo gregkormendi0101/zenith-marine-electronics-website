@@ -42,8 +42,8 @@ source = html_path.read_text(encoding="utf-8") if html_path.exists() else ""
 soup = BeautifulSoup(source, "html.parser")
 
 check(len(soup.find_all("h1")) == 1, "expected exactly one h1")
-check(len(soup.select(".service-card")) == 3, "expected exactly three service cards")
-check(len(soup.select(".service-symbol")) == 3, "expected exactly three service symbols")
+check(len(soup.select("[data-service-card]")) == 3, "expected exactly three service cards")
+check(len(soup.select(".qualification")) == 4, "expected four verified qualification labels")
 check(bool(soup.find("meta", attrs={"name": "description", "content": True})), "missing meta description")
 canonical = soup.find("link", rel="canonical")
 check(bool(canonical and canonical.get("href") == CANONICAL), "incorrect canonical URL")
@@ -77,10 +77,10 @@ for image in soup.find_all("img"):
     check(image.has_attr("width") and image.has_attr("height"), f"image missing intrinsic dimensions: {image.get('src')}")
 
 visible = soup.get_text(" ", strip=True)
-for phrase in ("NMEA 2000 Networks", "Starlink Systems", "VHF Radio & FCC Inspections", "Key Largo", "Tavernier", "Islamorada"):
+for phrase in ("NMEA 2000 networks", "Marine Starlink", "VHF & FCC inspections", "Key Largo", "Tavernier", "Islamorada"):
     check(phrase in visible, f"missing public offer phrase: {phrase}")
-check(all(term in (soup.find("h1").get_text(" ") if soup.find("h1") else "") for term in ("NMEA", "Starlink", "VHF", "FCC")), "first-view offer is incomplete")
-check(len(soup.select(f'a[href="tel:{PHONE}"]')) >= 3, "telephone actions are missing or inconsistent")
+check(all(term in soup.select_one(".hero").get_text(" ") for term in ("NMEA", "Starlink", "VHF", "FCC")), "first-view offer is incomplete")
+check(len(soup.select(f'a[href="tel:{PHONE}"]')) >= 1, "telephone action is missing or inconsistent")
 check(len(soup.select(f'a[href="sms:{PHONE}"]')) >= 1, "SMS fallback is missing or inconsistent")
 check(not soup.select(".morph-status, .morph-instruction"), "hero-state labels remain")
 check(bool(soup.select_one('a[href="privacy.html"]')), "privacy policy is not linked from the footer")
@@ -93,18 +93,16 @@ for forbidden in ("black swan marine", "92157 overseas", "3324 deer creek", "425
 for old_page in ("nmea-networks.html", "marine-electronics.html", "marine-radio-fcc.html"):
     check(not (ROOT / old_page).exists(), f"retired page remains: {old_page}")
 
-css = (ROOT / "styles.css").read_text(encoding="utf-8")
+css = (ROOT / "harbor.css").read_text(encoding="utf-8")
 for raw in re.findall(r'url\(["\']?([^"\')]+)', css):
     target = local_target(raw)
     check(target is None or target.exists(), f"missing CSS asset: {raw}")
 check("prefers-reduced-motion" in css, "missing reduced-motion support")
 
-script = (ROOT / "app.js").read_text(encoding="utf-8")
+script = (ROOT / "harbor.js").read_text(encoding="utf-8")
 for marker in (
     "window.ZenithBooking",
-    "window.ZenithMorph",
     "window.ZenithAnalytics",
-    "requestAnimationFrame",
     'trackEvent("service_select"',
     'trackEvent("sms_open"',
     'trackEvent("call_click"',
@@ -167,11 +165,11 @@ if privacy_path.exists():
     for phrase in ("Google Analytics", "prepared text message", "campaign attribution", "305-306-6391"):
         check(phrase in privacy_text, f"privacy policy missing disclosure: {phrase}")
 
-for blueprint_name in ("hero-blueprint.svg", "hero-blueprint-mobile.svg"):
-    blueprint = (ROOT / "assets" / blueprint_name).read_text(encoding="utf-8")
-    check("<image" not in blueprint, f"{blueprint_name} embeds raster artwork")
-    check("<text" not in blueprint, f"{blueprint_name} contains visible text")
-    check(blueprint.count("<path") >= 20, f"{blueprint_name} lacks drafted linework")
+check('noindex' not in source.lower(), "production contains noindex")
+check('DESIGN PREVIEW' not in source and 'Private design preview' not in source, "preview labels remain")
+for anchor in ('book','qualifications','service-area','nmea-service','starlink-service','radio-service'):
+    check(bool(soup.find(id=anchor)), f"missing legacy anchor: {anchor}")
+check(bool(soup.select_one('#prepare-text[disabled]')), "no-JS builder must default disabled")
 
 check((ROOT / "CNAME").read_text(encoding="utf-8").strip() == "zenithmarineelectronics.com", "CNAME is wrong")
 sitemap = (ROOT / "sitemap.xml").read_text(encoding="utf-8")
@@ -180,7 +178,7 @@ check(f"{CANONICAL}privacy.html" in sitemap, "sitemap lacks privacy URL")
 for filename in SERVICE_PAGES:
     check(f"{CANONICAL}{filename}" in sitemap, f"sitemap lacks service page: {filename}")
 check("Sitemap: https://zenithmarineelectronics.com/sitemap.xml" in (ROOT / "robots.txt").read_text(encoding="utf-8"), "robots.txt lacks sitemap")
-check((ROOT / "assets/images/social.webp").exists(), "social image is missing")
+check((ROOT / "assets/images/harbor-social.webp").exists(), "social image is missing")
 
 for path in (ROOT / "assets").rglob("*"):
     if path.is_file() and path.name != ".DS_Store":
@@ -193,8 +191,8 @@ if errors:
     sys.exit(1)
 
 print("VALIDATION PASSED")
-print("- one-page Service First production build")
+print("- Harbor homepage with preserved high-intent service pages")
 print("- metadata, JSON-LD, canonical, sitemap, robots, and CNAME: pass")
 print("- public wording, privacy limits, local references, and asset budget: pass")
 print("- GA4 loader/events and privacy disclosure: pass")
-print("- vector blueprint, three service lanes, booking actions, and reduced motion: pass")
+print("- three expandable service lanes, prepared SMS, and reduced motion: pass")
