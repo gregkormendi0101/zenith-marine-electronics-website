@@ -2,6 +2,9 @@
 
 Approved **Harbor** homepage with three retained high-intent service landing pages. Static GitHub Pages site at https://zenithmarineelectronics.com/.
 
+
+> **2026-10-19:** Homepage replaced with the approved one-page design (transparent launch pricing, FCC Form 824 lane, white header/footer with the original logo). The Harbor homepage remains in git history for rollback. Service landing pages and privacy page retained; their request sections were relabelled from 'Demand test' to 'Request service'.
+
 ## Runtime
 - `index.html`, `harbor.css`, `harbor.js`: concise homepage, three expandable service lanes, qualifications, operator/process information and a locally prepared SMS request.
 - `*-upper-florida-keys.html`: existing NMEA troubleshooting, Starlink installation and VHF/DSC/AIS landing pages. Preserve these URLs for organic search and existing campaign links.
