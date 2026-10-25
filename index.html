@@ -417,6 +417,7 @@
       window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
       window.gtag('js', new Date());
       window.gtag('config', 'G-H8KGT9K2TM');
+      window.gtag('config', 'AW-18533576927');
     </script>
     <style>
       .svc-link { display: inline-block; margin-top: 14px; font-weight: 600; font-size: 15px; color: #0e7c8c; text-decoration: none; }
@@ -887,7 +888,7 @@
         });
         var smsBtn = document.getElementById('smsBtn');
         if (smsBtn) {
-          smsBtn.addEventListener('click', function () { track('sms_open', {}); });
+          smsBtn.addEventListener('click', function () { track('sms_open', {}); if (typeof window.gtag === 'function') { window.gtag('event', 'conversion', {'send_to': 'AW-18533576927/N9TqCLynuakdEN_hv4VF'}); } });
         }
         var svc = document.getElementById('fService');
         if (svc) {
