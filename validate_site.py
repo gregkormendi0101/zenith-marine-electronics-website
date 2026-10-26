@@ -131,7 +131,11 @@ for filename, expected_h1 in SERVICE_PAGES.items():
     check(bool(service_soup.select_one("#service option[selected]")), f"{filename}: service is not preselected")
     check(len(service_soup.select(f'a[href="tel:{PHONE}"]')) >= 3, f"{filename}: telephone actions missing")
     check(bool(service_soup.select_one(f'a[href="sms:{PHONE}"]')), f"{filename}: SMS fallback missing")
-    check(bool(service_soup.select_one('link[href^="service-pages.css"]')), f"{filename}: service CSS missing")
+    # Oct 2026 design alignment: service pages are self-contained like index.html
+    # (inline design-system <style>, no external service-pages.css) and carry the
+    # Google Ads tag config alongside GA4.
+    check(bool(service_soup.find("style")) and "--teal-bright" in service_source, f"{filename}: current-design inline CSS missing")
+    check("AW-18533576927" in service_source, f"{filename}: Google Ads tag config missing")
 
     for tag in service_soup.find_all(["a", "img", "link", "script", "source"]):
         for attr in ("href", "src", "srcset"):
