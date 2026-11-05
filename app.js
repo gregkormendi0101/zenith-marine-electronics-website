@@ -175,6 +175,11 @@
         link_text: link.textContent.trim(),
         lead_source: attribution.source,
       });
+      if (typeof window.gtag === "function") {
+        window.gtag("event", "conversion", {
+          send_to: "AW-18533576927/-0ryCNOe5LIdEN_hv4VF",
+        });
+      }
     });
   });
 

@@ -902,7 +902,7 @@ src="https://www.facebook.com/tr?id=1055938024136920&ev=PageView&noscript=1"
           if (typeof window.gtag === 'function') { window.gtag('event', name, params || {}); }
         }
         document.querySelectorAll('a[href^="tel:"]').forEach(function (a) {
-          a.addEventListener('click', function () { track('call_click', {}); });
+          a.addEventListener('click', function () { track('call_click', {}); if (typeof window.gtag === 'function') { window.gtag('event', 'conversion', {'send_to': 'AW-18533576927/-0ryCNOe5LIdEN_hv4VF'}); } });
         });
         var smsBtn = document.getElementById('smsBtn');
         if (smsBtn) {

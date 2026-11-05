@@ -913,7 +913,7 @@ src="https://www.facebook.com/tr?id=1055938024136920&ev=PageView&noscript=1"
       </div>
     </footer>
 
-    <script src="app.js?v=20260817-ga" defer></script>
+    <script src="app.js?v=20261105-call" defer></script>
 {CONVERSION_SCRIPT}
   </body>
 </html>
