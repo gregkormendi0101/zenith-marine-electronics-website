@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="description" content="Warranty policy for Zenith Marine Electronics: 12-month installation and repair workmanship warranty, manufacturer warranty pass-through for parts, exclusions, and how to make a claim." />
+    <link rel="icon" href="assets/brand/favicon.png" type="image/png" />
+    <title>Warranty Policy | Zenith Marine Electronics</title>
+    <link rel="canonical" href="https://zenithmarineelectronics.com/warranty.html" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light;
+        --bg: #eef4f6;
+        --surface: #ffffff;
+        --ink: #0a2233;
+        --ink-soft: #33505f;
+        --ink-faint: #5d7a89;
+        --line: #cfdee3;
+        --teal: #0e7c86;
+        --teal-bright: #17a2b0;
+        --accent-ink: #0b6d77;
+      }
+      @media (prefers-color-scheme: dark) {
+        :root {
+          color-scheme: dark;
+          --bg: #06141f;
+          --surface: #0a2133;
+          --ink: #e9f3f6;
+          --ink-soft: #b3cdd8;
+          --ink-faint: #7e9dab;
+          --line: #1d3d53;
+          --teal: #2dd4bf;
+          --teal-bright: #3ec6d8;
+          --accent-ink: #5eead4;
+        }
+      }
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        font-family: "Barlow", system-ui, -apple-system, "Segoe UI", sans-serif;
+        background: var(--bg);
+        color: var(--ink);
+        line-height: 1.55;
+        font-size: 17px;
+        -webkit-font-smoothing: antialiased;
+      }
+      img { max-width: 100%; display: block; }
+      a { color: var(--accent-ink); }
+      h1, h2, h3 {
+        font-family: "Barlow Condensed", "Barlow", sans-serif;
+        font-weight: 600;
+        line-height: 1.08;
+        margin: 0;
+        letter-spacing: 0.01em;
+      }
+      .wrap { max-width: 1160px; margin: 0 auto; padding: 0 22px; }
+      .kicker {
+        font-family: "IBM Plex Mono", ui-monospace, monospace;
+        font-size: 12.5px;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: var(--accent-ink);
+        margin: 0 0 14px;
+      }
+      .skip-link {
+        position: absolute; left: 16px; top: -60px; z-index: 100;
+        background: var(--surface); color: var(--accent-ink);
+        padding: 10px 16px; border-radius: 8px; font-weight: 600;
+        transition: top 0.15s ease;
+      }
+      .skip-link:focus { top: 12px; }
+
+      /* ---------- Header (matches index.html) ---------- */
+      header {
+        position: sticky; top: 0; z-index: 50;
+        background: #ffffff;
+        border-bottom: 1px solid var(--line);
+        box-shadow: 0 1px 12px rgba(7, 26, 43, 0.06);
+      }
+      .header-in {
+        display: flex; align-items: center; gap: 18px;
+        padding-top: 12px; padding-bottom: 12px;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; text-decoration: none; margin-right: auto; }
+      .brand-logo { height: 58px; width: auto; flex: none; background: transparent; border-radius: 0; padding: 0; }
+      .foot-logo { height: 46px; width: auto; background: transparent; border-radius: 0; padding: 0; }
+      .btn {
+        display: inline-flex; align-items: center; gap: 9px;
+        font-weight: 600; font-size: 16px; text-decoration: none;
+        border-radius: 10px; padding: 12px 22px;
+        border: 1px solid transparent; cursor: pointer;
+        transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+      }
+      .btn-primary { background: var(--teal); color: #ffffff; }
+      .btn-primary:hover { background: var(--teal-bright); color: #ffffff; }
+      @media (prefers-color-scheme: dark) {
+        .btn-primary { color: #04202b; }
+        .btn-primary:hover { color: #04202b; }
+      }
+      .btn-head { padding: 9px 18px; font-size: 15px; }
+      @media (max-width: 560px) {
+        .brand-logo { height: 48px; padding: 0; }
+        .foot-logo { height: 40px; }
+      }
+
+      /* ---------- Privacy copy ---------- */
+      .privacy-main { padding: 72px 0 84px; }
+      .privacy-copy { max-width: 780px; }
+      .privacy-copy h1 { font-size: clamp(38px, 5vw, 54px); margin-bottom: 10px; }
+      .privacy-copy h2 { font-size: 28px; margin: 36px 0 10px; }
+      .privacy-copy p { color: var(--ink-soft); margin: 0 0 16px; font-size: 17px; }
+      .privacy-updated {
+        font-family: "IBM Plex Mono", monospace; font-size: 13.5px;
+        color: var(--ink-faint); margin-bottom: 28px !important;
+      }
+
+      /* ---------- Footer (matches index.html) ---------- */
+      footer {
+        background: #ffffff; color: #33505f;
+        padding: 44px 0 36px; border-top: 1px solid #cfdee3;
+        box-shadow: 0 -1px 12px rgba(7, 26, 43, 0.06);
+      }
+      .foot-in { display: flex; flex-wrap: wrap; gap: 18px 40px; align-items: flex-start; justify-content: space-between; }
+      .foot-brand { display: flex; align-items: center; gap: 12px; }
+      .foot-links { display: flex; flex-wrap: wrap; gap: 8px 26px; font-size: 15.5px; }
+      .foot-links a { color: #0a2233; text-decoration: none; font-weight: 500; }
+      .foot-links a:hover { color: var(--accent-ink); }
+      .foot-bottom {
+        margin-top: 30px; padding-top: 20px;
+        border-top: 1px solid #cfdee3;
+        color: #5d7a89;
+        font-size: 14px; display: flex; flex-wrap: wrap; gap: 6px 22px; justify-content: space-between;
+      }
+      @media (prefers-reduced-motion: reduce) {
+        html { scroll-behavior: auto; }
+        * { transition: none !important; }
+      }
+    </style>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-H8KGT9K2TM"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      window.gtag = window.gtag || function(){ window.dataLayer.push(arguments); };
+      window.gtag('js', new Date());
+      window.gtag('config', 'G-H8KGT9K2TM');
+      window.gtag('config', 'AW-18533576927');
+    </script>
+  <!-- Meta Pixel Code -->
+<script>
+!function(f,b,e,v,n,t,s)
+{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+n.queue=[];t=b.createElement(e);t.async=!0;
+t.src=v;s=b.getElementsByTagName(e)[0];
+s.parentNode.insertBefore(t,s)}(window, document,'script',
+'https://connect.facebook.net/en_US/fbevents.js');
+fbq('init', '1055938024136920');
+fbq('track', 'PageView');
+</script>
+<noscript><img height="1" width="1" style="display:none"
+src="https://www.facebook.com/tr?id=1055938024136920&ev=PageView&noscript=1"
+/></noscript>
+<!-- End Meta Pixel Code -->
+</head>
+  <body>
+    <a class="skip-link" href="#main">Skip to content</a>
+
+    <!-- ================= Header ================= -->
+    <header>
+      <div class="wrap header-in">
+        <a class="brand" href="index.html" aria-label="Zenith Marine Electronics — home">
+          <img class="brand-logo" src="assets/brand/zenith-full.webp" alt="Zenith Marine Electronics" width="1500" height="618" />
+        </a>
+        <nav class="main" aria-label="Main">
+          <a class="btn btn-primary btn-head" href="index.html">Back to site</a>
+        </nav>
+      </div>
+    </header>
+
+    <main class="privacy-main" id="main">
+      <article class="wrap privacy-copy">
+        <p class="kicker">Warranty</p>
+        <h1>Warranty policy</h1>
+        <p class="privacy-updated">Effective November 13, 2026</p>
+
+        <h2>Our workmanship — warranted for 12 months</h2>
+        <p>Zenith Marine Electronics warrants its installation and repair workmanship for <strong>12 months from the date the work is completed</strong> (the date on your invoice). If a connection, termination, mount, splice, or configuration we performed fails because of how the work was done, we will re-do or repair that work <strong>at no charge for labor</strong>.</p>
+
+        <h2>Parts and equipment — the manufacturer's warranty</h2>
+        <p>Parts and equipment carry the <strong>manufacturer's warranty only</strong> (for example, Morad antennas carry a 2-year manufacturer warranty). Zenith does not extend, replace, or add to the manufacturer's warranty term.</p>
+        <p>For parts <strong>we supplied</strong>, we will help with the manufacturer's warranty claim — including the test results and documentation from the job. If a part we supplied and installed fails under its manufacturer's warranty, removal and reinstallation labor is billed at our standard rate <strong>unless the failure was caused by our workmanship</strong> — then the labor is on us, under the workmanship warranty above.</p>
+
+        <h2>What this warranty does not cover</h2>
+        <ul>
+          <li>Wiring, equipment, or conditions we did not work on, including faults that were already present</li>
+          <li>Corrosion or failure outside the connections and components we touched</li>
+          <li>Misuse, accidents, or work performed by others after our visit</li>
+          <li>Lightning, storms, flooding, and other acts of God</li>
+          <li>Consumables — batteries, fuses, anodes, lamps, and similar wear items</li>
+          <li>The inspected equipment itself, where our work was inspection or verification only (see below)</li>
+        </ul>
+
+        <h2>Inspections and verification reports</h2>
+        <p>Our inspections, diagnostics, and written reports — including FCC Form 824 surveys — document the condition found <strong>on the day of the visit</strong>. They are not a warranty of the equipment inspected. Equipment can pass an inspection and fail afterward without any fault in the inspection.</p>
+
+        <h2>How to make a claim</h2>
+        <p>Email <a href="mailto:greg@zenithmarineelectronics.com">greg@zenithmarineelectronics.com</a> or call <a href="tel:+13053066391">305-306-6391</a> within the warranty period and tell us what failed. Warranty work is scheduled like other work. Within our Upper Keys service area there is <strong>no labor or travel charge</strong> for warranted re-work; outside the Upper Keys, travel is billed at the standard rate.</p>
+        <p>This policy states the warranty for workmanship claims (re-performance or repair of the warranted work, as above). It does not limit any rights you may have under Florida or federal law.</p>
+      </article>
+    </main>
+
+    <!-- ================= Footer ================= -->
+    <footer>
+      <div class="wrap">
+        <div class="foot-in">
+          <div class="foot-brand">
+            <img class="foot-logo" src="assets/brand/zenith-full.webp" alt="Zenith Marine Electronics" width="1500" height="618" />
+          </div>
+          <nav class="foot-links" aria-label="Footer">
+            <a href="index.html#services">Services</a>
+            <a href="index.html#why">Why Zenith</a>
+            <a href="index.html#how">How it works</a>
+            <a href="index.html#area">Service Area</a>
+            <a href="index.html#request">Request Service</a>
+            <a href="privacy.html">Privacy</a>
+            <a href="warranty.html">Warranty</a>
+            <a href="tel:+13053066391">305-306-6391</a>
+          </nav>
+        </div>
+        <div class="foot-bottom">
+          <span>© 2026 Zenith Marine Electronics</span>
+          <span>Mobile service · Key Largo · Tavernier · Islamorada</span>
+        </div>
+      </div>
+    </footer>
+    <script>
+      (function () {
+        document.querySelectorAll('a[href^="tel:"]').forEach(function (a) {
+          a.addEventListener('click', function () { if (typeof window.gtag === 'function') { window.gtag('event', 'conversion', {'send_to': 'AW-18533576927/-0ryCNOe5LIdEN_hv4VF'}); } });
+        });
+      })();
+    </script>
+  </body>
+</html>
