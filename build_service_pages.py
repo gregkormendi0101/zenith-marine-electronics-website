@@ -176,6 +176,65 @@ PAGES = [
             ("Do you perform FCC ship-radio inspections?", "Potential non-GMDSS inspection work is screened before scheduling for vessel applicability, scope, calibrated equipment, and independence requirements."),
         ],
     },
+    {
+        "slug": "free-nmea-2000-network-health-check-upper-florida-keys.html",
+        "title": "Free NMEA 2000 Network Health Check | Upper Florida Keys",
+        "description": "Free NMEA 2000 network health check for Upper Keys boats: full device list, backbone voltage under load, terminator and resistance check, error and dropout scan, and a written health note - dockside in Key Largo, Tavernier, and Islamorada.",
+        "eyebrow": "NMEA 2000 \u00b7 Free health check",
+        "h1": "Free NMEA 2000 network health check in the Upper Florida Keys",
+        "lede": "A free, read-only health check of your boat's NMEA 2000 network - about 30 minutes at your dock, with a short written health note in your hand before I leave.",
+        "service": "NMEA 2000 network health check",
+        "service_type": "Free NMEA 2000 network health check",
+        "facts": [
+            ("Coverage", "Key Largo \u00b7 Tavernier \u00b7 Islamorada"),
+            ("Cost", "Free \u00b7 no obligation"),
+            ("Credential", "Advanced NMEA 2000 Installer \u00b7 FCC GROL"),
+        ],
+        "pricing": [
+            ("NMEA 2000 network health check", "FREE"),
+        ],
+        "pricing_note": "No cost and no obligation - the check is a health read, not fault-finding. If the note points at a specific fault, the next step is the $225 diagnostic, quoted before any work starts.",
+        "signals_title": "What the free check covers",
+        "signals_intro": "One plug into a backbone tee with the NavDoctor diagnostic tool - read-only, nothing opened up, nothing changed.",
+        "signals": [
+            "Full device list - everything talking on the network, and anything that should be there but isn't",
+            "Backbone voltage under load - the sag that makes good gear act broken",
+            "Terminator and resistance check - the two-terminator rule, measured",
+            "Error and dropout scan - devices quietly falling off the bus",
+            "A short written health note - findings plus what I would quote to fix",
+        ],
+        "process": [
+            ("01 \u00b7 Request", "Send the request form or call/text. Tell me the boat, the marina, and what's on the network."),
+            ("02 \u00b7 Confirm", "I confirm every check personally and batch boats by marina into health-check days around my captain schedule."),
+            ("03 \u00b7 Check", "About 30 minutes at your dock, read-only. You get the written health note before I leave."),
+        ],
+        "scope_title": "What to send with your request",
+        "scope": [
+            "Your name, phone, and email",
+            "Boat make, model, and length",
+            "Marina or dock location",
+            "What's on the network - chartplotter, autopilot, engine data, instruments",
+            "Anything you've noticed - dropouts, alarms, blanks (not required; the check is a health read, not a fault hunt)",
+        ],
+        "note": "The check covers the NMEA 2000 network only. It is not fault-specific troubleshooting and not a repair: hunting down one named fault is diagnostic work, quoted separately before anything starts. Findings are measured results - never a parts recommendation tied to any shop.",
+        "faqs": [
+            ("Is it really free?", "Yes. The check, the visit, and the written health note cost nothing and carry no obligation. It is how I meet boat owners and prove the work is measured, not guessed."),
+            ("What happens if the check finds a problem?", "You get the finding in writing, with what I would quote to put it right. Fault-finding and repairs are separate, quoted work - nothing starts without your go-ahead."),
+            ("Do you need to open up my installation?", "No. The check is read-only: one connection to a backbone tee, measurements and scans only. Nothing is opened, moved, or reconfigured."),
+            ("Which boats and areas?", "Boats with an NMEA 2000 network in Key Largo, Tavernier, and Islamorada. Checks are batched by marina into health-check days."),
+        ],
+        "extra": """      <!-- ================= Findings sheet ================= -->
+      <section aria-labelledby="sheet-title">
+        <div class="wrap">
+          <div class="section-head">
+            <p class="kicker">The deliverable</p>
+            <h2 id="sheet-title">The health note you'll take away</h2>
+            <p>Every check ends with this one-page written note - the five checks, PASS / WATCH / FAULT, and the quoted next step if anything needs one. <a href="assets/nmea-2000-health-check-findings-sheet.pdf">See the findings sheet (PDF)</a>.</p>
+          </div>
+        </div>
+      </section>
+""",
+    },
 ]
 
 
@@ -186,6 +245,7 @@ def esc(value: str) -> str:
 def options(selected: str) -> str:
     values = [
         "NMEA 2000 networks",
+        "NMEA 2000 network health check",
         "Starlink systems",
         "VHF radio service",
         "FCC ship-radio inspection",
@@ -630,6 +690,7 @@ def render(page: dict) -> str:
         )
     process = "\n".join(steps)
     scope_items = "\n".join(f"              <li>{esc(item)}</li>" for item in page["scope"])
+    extra = page.get("extra", "")
     faqs = "\n".join(
         f'''          <article class="svc">
             <h3>{esc(question)}</h3>
@@ -677,12 +738,12 @@ def render(page: dict) -> str:
   <!-- Meta Pixel Code -->
 <script>
 !function(f,b,e,v,n,t,s)
-{if(f.fbq)return;n=f.fbq=function(){n.callMethod?
-n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+{{if(f.fbq)return;n=f.fbq=function(){{n.callMethod?
+n.callMethod.apply(n,arguments):n.queue.push(arguments)}};
 if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
 n.queue=[];t=b.createElement(e);t.async=!0;
 t.src=v;s=b.getElementsByTagName(e)[0];
-s.parentNode.insertBefore(t,s)}(window, document,'script',
+s.parentNode.insertBefore(t,s)}}(window, document,'script',
 'https://connect.facebook.net/en_US/fbevents.js');
 fbq('init', '1055938024136920');
 fbq('track', 'PageView');
@@ -750,6 +811,7 @@ src="https://www.facebook.com/tr?id=1055938024136920&ev=PageView&noscript=1"
         </div>
       </section>
 
+{extra}
       <!-- ================= Pricing ================= -->
       <section class="band" aria-labelledby="pricing-title">
         <div class="wrap">
